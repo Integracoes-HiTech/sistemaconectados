@@ -2,9 +2,10 @@ import React, { useState } from "react";
 import { useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Logo } from "@/components/Logo";
 import { useToast } from "@/hooks/use-toast";
-import { User, Phone, Mail, Instagram, UserPlus, CheckCircle, MapPin, Building } from "lucide-react";
+import { User, Phone, Mail, Instagram, UserPlus, CheckCircle, MapPin, Building, AlertCircle } from "lucide-react";
 
 export default function PublicRegister() {
   const { linkId } = useParams();
@@ -21,7 +22,24 @@ export default function PublicRegister() {
   });
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const { toast } = useToast();
+
+  // Dados mockados para UF e Cidades
+  const estadosECidades = {
+    "GO": ["Aparecida de Goiânia", "Goiânia", "Anápolis", "Rio Verde", "Luziânia", "Águas Lindas de Goiás", "Valparaíso de Goiás", "Trindade", "Formosa", "Novo Gama"],
+    "SP": ["São Paulo", "Guarulhos", "Campinas", "São Bernardo do Campo", "Santo André", "Osasco", "Ribeirão Preto", "Sorocaba", "Mauá", "São José dos Campos"],
+    "RJ": ["Rio de Janeiro", "São Gonçalo", "Duque de Caxias", "Nova Iguaçu", "Niterói", "Belford Roxo", "São João de Meriti", "Campos dos Goytacazes", "Petrópolis", "Volta Redonda"],
+    "MG": ["Belo Horizonte", "Uberlândia", "Contagem", "Juiz de Fora", "Betim", "Montes Claros", "Ribeirão das Neves", "Uberaba", "Governador Valadares", "Ipatinga"],
+    "PR": ["Curitiba", "Londrina", "Maringá", "Ponta Grossa", "Cascavel", "São José dos Pinhais", "Foz do Iguaçu", "Colombo", "Guarapuava", "Paranaguá"],
+    "RS": ["Porto Alegre", "Caxias do Sul", "Pelotas", "Canoas", "Santa Maria", "Gravataí", "Viamão", "Novo Hamburgo", "São Leopoldo", "Rio Grande"],
+    "BA": ["Salvador", "Feira de Santana", "Vitória da Conquista", "Camaçari", "Juazeiro", "Itabuna", "Lauro de Freitas", "Ilhéus", "Jequié", "Alagoinhas"],
+    "PE": ["Recife", "Jaboatão dos Guararapes", "Olinda", "Caruaru", "Petrolina", "Paulista", "Cabo de Santo Agostinho", "Camaragibe", "Garanhuns", "Vitória de Santo Antão"],
+    "CE": ["Fortaleza", "Caucaia", "Juazeiro do Norte", "Maracanaú", "Sobral", "Crato", "Itapipoca", "Maranguape", "Iguatu", "Quixadá"],
+    "DF": ["Brasília", "Ceilândia", "Samambaia", "Taguatinga", "Plano Piloto", "Gama", "Santa Maria", "São Sebastião", "Recanto das Emas", "Lago Sul"]
+  };
+
+  const estados = Object.keys(estadosECidades);
 
   // Extrair informações do usuário do linkId
   const getUserFromLinkId = (linkId: string | undefined) => {
@@ -42,26 +60,116 @@ export default function PublicRegister() {
 
   const referrerName = getUserFromLinkId(linkId);
 
-  const validateInstagram = (value: string) => {
-    const instagramRegex = /^@?[\w](?!.*?\.{2})[\w.]{1,28}[\w]$/;
-    return instagramRegex.test(value.replace('@', ''));
+  // Funções de validação
+  const validateEmail = (email: string) => {
+    return email.includes('@') && email.length > 0;
   };
 
-  const validatePhone = (value: string) => {
-    const phoneRegex = /^\d{10,11}$/;
-    return phoneRegex.test(value.replace(/\D/g, ''));
+  const validateName = (name: string) => {
+    // Deve conter apenas letras e ter pelo menos duas palavras separadas por espaço
+    const nameRegex = /^[a-zA-ZÀ-ÿ\s]+$/;
+    const words = name.trim().split(/\s+/);
+    return nameRegex.test(name) && words.length >= 2 && words.every(word => word.length > 0);
+  };
+
+  const validatePhone = (phone: string) => {
+    // Remove todos os caracteres não numéricos
+    const cleanPhone = phone.replace(/\D/g, '');
+    // Deve ter exatamente 11 dígitos (DDD + 9 dígitos)
+    return cleanPhone.length === 11;
+  };
+
+  const formatPhone = (value: string) => {
+    // Remove todos os caracteres não numéricos
+    const numbers = value.replace(/\D/g, '');
+    
+    // Aplica a máscara (62) 99999-9999
+    if (numbers.length <= 2) {
+      return numbers;
+    } else if (numbers.length <= 7) {
+      return `(${numbers.slice(0, 2)}) ${numbers.slice(2)}`;
+    } else {
+      return `(${numbers.slice(0, 2)}) ${numbers.slice(2, 7)}-${numbers.slice(7, 11)}`;
+    }
+  };
+
+  const validateRequiredFields = () => {
+    const errors: Record<string, string> = {};
+    
+    if (!formData.name.trim()) {
+      errors.name = 'Nome é obrigatório';
+    } else if (!validateName(formData.name)) {
+      errors.name = 'Deve conter nome e sobrenome';
+    }
+    
+    if (!formData.address.trim()) {
+      errors.address = 'Endereço é obrigatório';
+    }
+    
+    if (!formData.state) {
+      errors.state = 'UF é obrigatório';
+    }
+    
+    if (!formData.city) {
+      errors.city = 'Cidade é obrigatória';
+    }
+    
+    if (!formData.neighborhood.trim()) {
+      errors.neighborhood = 'Bairro é obrigatório';
+    }
+    
+    if (!formData.phone.trim()) {
+      errors.phone = 'Telefone é obrigatório';
+    } else if (!validatePhone(formData.phone)) {
+      errors.phone = 'Telefone deve ter 11 dígitos (DDD + 9 dígitos)';
+    }
+    
+    if (!formData.email.trim()) {
+      errors.email = 'Email é obrigatório';
+    } else if (!validateEmail(formData.email)) {
+      errors.email = 'Email deve conter @';
+    }
+    
+    if (!formData.instagram.trim()) {
+      errors.instagram = 'Instagram é obrigatório';
+    }
+    
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
   };
 
   const handleInputChange = (field: string, value: string) => {
     let processedValue = value;
     
     if (field === 'phone') {
-      processedValue = value.replace(/\D/g, '');
+      processedValue = formatPhone(value);
     } else if (field === 'instagram' && value && !value.startsWith('@')) {
       processedValue = '@' + value;
+    } else if (field === 'name') {
+      // Permite apenas letras e espaços
+      processedValue = value.replace(/[^a-zA-ZÀ-ÿ\s]/g, '');
     }
     
     setFormData(prev => ({ ...prev, [field]: processedValue }));
+    
+    // Limpa o erro do campo quando o usuário começa a digitar
+    if (formErrors[field]) {
+      setFormErrors(prev => ({ ...prev, [field]: '' }));
+    }
+  };
+
+  const handleStateChange = (state: string) => {
+    setFormData(prev => ({ ...prev, state, city: '' })); // Limpa a cidade quando muda o estado
+    if (formErrors.state) {
+      setFormErrors(prev => ({ ...prev, state: '' }));
+    }
+  };
+
+  const handleCityChange = (city: string) => {
+    setFormData(prev => ({ ...prev, city }));
+    if (formErrors.city) {
+      setFormErrors(prev => ({ ...prev, city: '' }));
+    }
   };
 
   // Preencher automaticamente o campo referrer com o nome de quem gerou o link
@@ -71,28 +179,18 @@ export default function PublicRegister() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Valida todos os campos obrigatórios
+    if (!validateRequiredFields()) {
+      toast({
+        title: "Campos obrigatórios",
+        description: "Por favor, preencha todos os campos corretamente.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsLoading(true);
-
-    // Validações
-    if (!validatePhone(formData.phone)) {
-      toast({
-        title: "Telefone inválido",
-        description: "Digite um telefone válido com 10 ou 11 dígitos.",
-        variant: "destructive",
-      });
-      setIsLoading(false);
-      return;
-    }
-
-    if (!validateInstagram(formData.instagram)) {
-      toast({
-        title: "Instagram inválido",
-        description: "Digite um nome de usuário válido do Instagram.",
-        variant: "destructive",
-      });
-      setIsLoading(false);
-      return;
-    }
 
     // Simulação de cadastro - seria integrado com Supabase
     setTimeout(() => {
@@ -170,109 +268,180 @@ export default function PublicRegister() {
       {/* Formulário de Cadastro */}
       <div className="w-full max-w-md space-y-6">
         {/* Campo Nome */}
-        <div className="relative">
-          <User className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-          <Input
-            type="text"
-            placeholder="Nome Completo"
-            value={formData.name}
-            onChange={(e) => handleInputChange('name', e.target.value)}
-            className="pl-12 h-12 bg-gray-800 border-gray-700 text-white placeholder-gray-400 focus:border-institutional-gold focus:ring-institutional-gold rounded-lg"
-            required
-          />
+        <div className="space-y-1">
+          <div className="relative">
+            <User className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
+            <Input
+              type="text"
+              placeholder="Nome Completo (ex: João Silva)"
+              value={formData.name}
+              onChange={(e) => handleInputChange('name', e.target.value)}
+              className={`pl-12 h-12 bg-gray-800 border-gray-700 text-white placeholder-gray-400 focus:border-institutional-gold focus:ring-institutional-gold rounded-lg ${formErrors.name ? 'border-red-500' : ''}`}
+              required
+            />
+          </div>
+          {formErrors.name && (
+            <div className="flex items-center gap-1 text-red-400 text-sm">
+              <AlertCircle className="w-4 h-4" />
+              <span>{formErrors.name}</span>
+            </div>
+          )}
         </div>
 
         {/* Campo Endereço */}
-        <div className="relative">
-          <MapPin className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-          <Input
-            type="text"
-            placeholder="Endereço"
-            value={formData.address}
-            onChange={(e) => handleInputChange('address', e.target.value)}
-            className="pl-12 h-12 bg-gray-800 border-gray-700 text-white placeholder-gray-400 focus:border-institutional-gold focus:ring-institutional-gold rounded-lg"
-            required
-          />
+        <div className="space-y-1">
+          <div className="relative">
+            <MapPin className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
+            <Input
+              type="text"
+              placeholder="Endereço"
+              value={formData.address}
+              onChange={(e) => handleInputChange('address', e.target.value)}
+              className={`pl-12 h-12 bg-gray-800 border-gray-700 text-white placeholder-gray-400 focus:border-institutional-gold focus:ring-institutional-gold rounded-lg ${formErrors.address ? 'border-red-500' : ''}`}
+              required
+            />
+          </div>
+          {formErrors.address && (
+            <div className="flex items-center gap-1 text-red-400 text-sm">
+              <AlertCircle className="w-4 h-4" />
+              <span>{formErrors.address}</span>
+            </div>
+          )}
         </div>
 
         {/* Campos UF e Cidade */}
         <div className="grid grid-cols-2 gap-4">
-          <div className="relative">
-            <Building className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-            <Input
-              type="text"
-              placeholder="UF"
-              value={formData.state}
-              onChange={(e) => handleInputChange('state', e.target.value)}
-              className="pl-12 h-12 bg-gray-800 border-gray-700 text-white placeholder-gray-400 focus:border-institutional-gold focus:ring-institutional-gold rounded-lg"
-              maxLength={2}
-              required
-            />
+          <div className="space-y-1">
+            <div className="relative">
+              <Building className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 z-10 pointer-events-none" />
+              <Select value={formData.state} onValueChange={handleStateChange}>
+                <SelectTrigger className={`pl-12 h-12 bg-gray-800 border-gray-700 text-white focus:border-institutional-gold focus:ring-institutional-gold rounded-lg ${formErrors.state ? 'border-red-500' : ''}`}>
+                  <SelectValue placeholder="UF" />
+                </SelectTrigger>
+                <SelectContent className="bg-gray-800 border-gray-700">
+                  {estados.map((estado) => (
+                    <SelectItem key={estado} value={estado} className="text-white hover:bg-gray-700">
+                      {estado}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {formErrors.state && (
+              <div className="flex items-center gap-1 text-red-400 text-sm">
+                <AlertCircle className="w-4 h-4" />
+                <span>{formErrors.state}</span>
+              </div>
+            )}
           </div>
-          <div className="relative">
-            <Building className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-            <Input
-              type="text"
-              placeholder="Cidade"
-              value={formData.city}
-              onChange={(e) => handleInputChange('city', e.target.value)}
-              className="pl-12 h-12 bg-gray-800 border-gray-700 text-white placeholder-gray-400 focus:border-institutional-gold focus:ring-institutional-gold rounded-lg"
-              required
-            />
+          <div className="space-y-1">
+            <div className="relative">
+              <Building className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 z-10 pointer-events-none" />
+              <Select value={formData.city} onValueChange={handleCityChange} disabled={!formData.state}>
+                <SelectTrigger className={`pl-12 h-12 bg-gray-800 border-gray-700 text-white focus:border-institutional-gold focus:ring-institutional-gold rounded-lg ${formErrors.city ? 'border-red-500' : ''}`}>
+                  <SelectValue placeholder="Cidade" />
+                </SelectTrigger>
+                <SelectContent className="bg-gray-800 border-gray-700">
+                  {formData.state && estadosECidades[formData.state as keyof typeof estadosECidades]?.map((cidade) => (
+                    <SelectItem key={cidade} value={cidade} className="text-white hover:bg-gray-700">
+                      {cidade}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {formErrors.city && (
+              <div className="flex items-center gap-1 text-red-400 text-sm">
+                <AlertCircle className="w-4 h-4" />
+                <span>{formErrors.city}</span>
+              </div>
+            )}
           </div>
         </div>
 
         {/* Campo Bairro */}
-        <div className="relative">
-          <MapPin className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-          <Input
-            type="text"
-            placeholder="Bairro"
-            value={formData.neighborhood}
-            onChange={(e) => handleInputChange('neighborhood', e.target.value)}
-            className="pl-12 h-12 bg-gray-800 border-gray-700 text-white placeholder-gray-400 focus:border-institutional-gold focus:ring-institutional-gold rounded-lg"
-            required
-          />
+        <div className="space-y-1">
+          <div className="relative">
+            <MapPin className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
+            <Input
+              type="text"
+              placeholder="Bairro"
+              value={formData.neighborhood}
+              onChange={(e) => handleInputChange('neighborhood', e.target.value)}
+              className={`pl-12 h-12 bg-gray-800 border-gray-700 text-white placeholder-gray-400 focus:border-institutional-gold focus:ring-institutional-gold rounded-lg ${formErrors.neighborhood ? 'border-red-500' : ''}`}
+              required
+            />
+          </div>
+          {formErrors.neighborhood && (
+            <div className="flex items-center gap-1 text-red-400 text-sm">
+              <AlertCircle className="w-4 h-4" />
+              <span>{formErrors.neighborhood}</span>
+            </div>
+          )}
         </div>
 
         {/* Campo Telefone */}
-        <div className="relative">
-          <Phone className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-          <Input
-            type="tel"
-            placeholder="Telefone (11999999999)"
-            value={formData.phone}
-            onChange={(e) => handleInputChange('phone', e.target.value)}
-            className="pl-12 h-12 bg-gray-800 border-gray-700 text-white placeholder-gray-400 focus:border-institutional-gold focus:ring-institutional-gold rounded-lg"
-            maxLength={11}
-            required
-          />
+        <div className="space-y-1">
+          <div className="relative">
+            <Phone className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
+            <Input
+              type="tel"
+              placeholder="(62) 99999-9999"
+              value={formData.phone}
+              onChange={(e) => handleInputChange('phone', e.target.value)}
+              className={`pl-12 h-12 bg-gray-800 border-gray-700 text-white placeholder-gray-400 focus:border-institutional-gold focus:ring-institutional-gold rounded-lg ${formErrors.phone ? 'border-red-500' : ''}`}
+              maxLength={15}
+              required
+            />
+          </div>
+          {formErrors.phone && (
+            <div className="flex items-center gap-1 text-red-400 text-sm">
+              <AlertCircle className="w-4 h-4" />
+              <span>{formErrors.phone}</span>
+            </div>
+          )}
         </div>
 
         {/* Campo Email */}
-        <div className="relative">
-          <Mail className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-          <Input
-            type="email"
-            placeholder="Email"
-            value={formData.email}
-            onChange={(e) => handleInputChange('email', e.target.value)}
-            className="pl-12 h-12 bg-gray-800 border-gray-700 text-white placeholder-gray-400 focus:border-institutional-gold focus:ring-institutional-gold rounded-lg"
-            required
-          />
+        <div className="space-y-1">
+          <div className="relative">
+            <Mail className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
+            <Input
+              type="email"
+              placeholder="Email (deve conter @)"
+              value={formData.email}
+              onChange={(e) => handleInputChange('email', e.target.value)}
+              className={`pl-12 h-12 bg-gray-800 border-gray-700 text-white placeholder-gray-400 focus:border-institutional-gold focus:ring-institutional-gold rounded-lg ${formErrors.email ? 'border-red-500' : ''}`}
+              required
+            />
+          </div>
+          {formErrors.email && (
+            <div className="flex items-center gap-1 text-red-400 text-sm">
+              <AlertCircle className="w-4 h-4" />
+              <span>{formErrors.email}</span>
+            </div>
+          )}
         </div>
 
         {/* Campo Instagram */}
-        <div className="relative">
-          <Instagram className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-          <Input
-            type="text"
-            placeholder="Instagram (@seuusuario)"
-            value={formData.instagram}
-            onChange={(e) => handleInputChange('instagram', e.target.value.replace('@', ''))}
-            className="pl-12 h-12 bg-gray-800 border-gray-700 text-white placeholder-gray-400 focus:border-institutional-gold focus:ring-institutional-gold rounded-lg"
-            required
-          />
+        <div className="space-y-1">
+          <div className="relative">
+            <Instagram className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
+            <Input
+              type="text"
+              placeholder="Instagram (@seuusuario)"
+              value={formData.instagram}
+              onChange={(e) => handleInputChange('instagram', e.target.value.replace('@', ''))}
+              className={`pl-12 h-12 bg-gray-800 border-gray-700 text-white placeholder-gray-400 focus:border-institutional-gold focus:ring-institutional-gold rounded-lg ${formErrors.instagram ? 'border-red-500' : ''}`}
+              required
+            />
+          </div>
+          {formErrors.instagram && (
+            <div className="flex items-center gap-1 text-red-400 text-sm">
+              <AlertCircle className="w-4 h-4" />
+              <span>{formErrors.instagram}</span>
+            </div>
+          )}
         </div>
 
         {/* Campo Nome da pessoa que indicou (readonly) */}

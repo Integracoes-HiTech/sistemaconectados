@@ -85,26 +85,18 @@ export default function Dashboard() {
       { id: 4, name: "Carlos Eduardo Lima", address: "Rua 9, 321", state: "GO", city: "Aparecida de Goiânia", neighborhood: "Jardim Nova Era", phone: "62954321098", email: "carlos.eduardo@email.com", instagram: "@carloseduardo", referrer: "João Silva - Coordenador", registrationDate: "2024-01-12", status: "Ativo" },
       { id: 5, name: "Fernanda Rodrigues", address: "Av. Perimetral Norte, 654", state: "GO", city: "Aparecida de Goiânia", neighborhood: "Setor Central", phone: "62943210987", email: "fernanda.rodrigues@email.com", instagram: "@fernandarodrigues", referrer: "João Silva - Coordenador", registrationDate: "2024-01-11", status: "Ativo" },
       
-      // Usuários do Valter
-      { id: 6, name: "Roberto Almeida", address: "Rua 15, 100", state: "GO", city: "Aparecida de Goiânia", neighborhood: "Jardim América", phone: "62987654321", email: "roberto.almeida@email.com", instagram: "@robertoalmeida", referrer: "Valter Gomes - Assessor Executivo", registrationDate: "2024-01-10", status: "Ativo" },
-      { id: 7, name: "Patricia Mendes", address: "Av. Goiás, 200", state: "GO", city: "Aparecida de Goiânia", neighborhood: "Setor Garavelo", phone: "62976543210", email: "patricia.mendes@email.com", instagram: "@patriciamendes", referrer: "Valter Gomes - Assessor Executivo", registrationDate: "2024-01-09", status: "Ativo" },
-      { id: 8, name: "Ricardo Souza", address: "Rua 12, 300", state: "GO", city: "Aparecida de Goiânia", neighborhood: "Vila União", phone: "62965432109", email: "ricardo.souza@email.com", instagram: "@ricardosouza", referrer: "Valter Gomes - Assessor Executivo", registrationDate: "2024-01-08", status: "Ativo" },
-      { id: 9, name: "Juliana Ferreira", address: "Av. Contorno, 400", state: "GO", city: "Aparecida de Goiânia", neighborhood: "Jardim Bela Vista", phone: "62954321098", email: "juliana.ferreira@email.com", instagram: "@julianaferreira", referrer: "Valter Gomes - Assessor Executivo", registrationDate: "2024-01-07", status: "Ativo" },
-      { id: 10, name: "Gabriel Santos", address: "Rua 8, 500", state: "GO", city: "Aparecida de Goiânia", neighborhood: "Setor Morada do Sol", phone: "62943210987", email: "gabriel.santos@email.com", instagram: "@gabrielsantos", referrer: "Valter Gomes - Assessor Executivo", registrationDate: "2024-01-06", status: "Ativo" },
       
       // Usuários do Marcos
-      { id: 11, name: "Camila Ribeiro", address: "Rua 20, 600", state: "GO", city: "Aparecida de Goiânia", neighborhood: "Jardim dos Ipês", phone: "62987654321", email: "camila.ribeiro@email.com", instagram: "@camilaribeiro", referrer: "Marcos Santos - Colaborador", registrationDate: "2024-01-05", status: "Ativo" },
-      { id: 12, name: "Diego Pereira", address: "Av. Perimetral Sul, 700", state: "GO", city: "Aparecida de Goiânia", neighborhood: "Setor Bueno", phone: "62966554433", email: "diego.pereira@email.com", instagram: "@diegoapereira", referrer: "Marcos Santos - Colaborador", registrationDate: "2024-01-04", status: "Ativo" },
-      { id: 13, name: "Larissa Oliveira", address: "Rua 25, 800", state: "GO", city: "Aparecida de Goiânia", neighborhood: "Vila Redenção", phone: "62955443322", email: "larissa.oliveira@email.com", instagram: "@larissaoliveira", referrer: "Marcos Santos - Colaborador", registrationDate: "2024-01-03", status: "Ativo" },
-      { id: 14, name: "Thiago Silva", address: "Av. Independência, 900", state: "GO", city: "Aparecida de Goiânia", neighborhood: "Jardim Olímpico", phone: "62944332211", email: "thiago.silva@email.com", instagram: "@thiagosilva", referrer: "Marcos Santos - Colaborador", registrationDate: "2024-01-02", status: "Ativo" },
-      { id: 15, name: "Beatriz Costa", address: "Rua 30, 1000", state: "GO", city: "Aparecida de Goiânia", neighborhood: "Setor Central", phone: "62933221100", email: "beatriz.costa@email.com", instagram: "@beatrizcosta", referrer: "Marcos Santos - Colaborador", registrationDate: "2024-01-01", status: "Ativo" },
+      { id: 6, name: "Camila Ribeiro", address: "Rua 20, 600", state: "GO", city: "Aparecida de Goiânia", neighborhood: "Jardim dos Ipês", phone: "62987654321", email: "camila.ribeiro@email.com", instagram: "@camilaribeiro", referrer: "Marcos Santos - Colaborador", registrationDate: "2024-01-05", status: "Ativo" },
+      { id: 7, name: "Diego Pereira", address: "Av. Perimetral Sul, 700", state: "GO", city: "Aparecida de Goiânia", neighborhood: "Setor Bueno", phone: "62966554433", email: "diego.pereira@email.com", instagram: "@diegoapereira", referrer: "Marcos Santos - Colaborador", registrationDate: "2024-01-04", status: "Ativo" },
+      { id: 8, name: "Larissa Oliveira", address: "Rua 25, 800", state: "GO", city: "Aparecida de Goiânia", neighborhood: "Vila Redenção", phone: "62955443322", email: "larissa.oliveira@email.com", instagram: "@larissaoliveira", referrer: "Marcos Santos - Colaborador", registrationDate: "2024-01-03", status: "Ativo" },
+      { id: 9, name: "Thiago Silva", address: "Av. Independência, 900", state: "GO", city: "Aparecida de Goiânia", neighborhood: "Jardim Olímpico", phone: "62944332211", email: "thiago.silva@email.com", instagram: "@thiagosilva", referrer: "Marcos Santos - Colaborador", registrationDate: "2024-01-02", status: "Ativo" },
+      { id: 10, name: "Beatriz Costa", address: "Rua 30, 1000", state: "GO", city: "Aparecida de Goiânia", neighborhood: "Setor Central", phone: "62933221100", email: "beatriz.costa@email.com", instagram: "@beatrizcosta", referrer: "Marcos Santos - Colaborador", registrationDate: "2024-01-01", status: "Ativo" },
       
       // Usuários adicionais para admin
-      { id: 16, name: "Eduardo Martins", address: "Rua 35, 150", state: "GO", city: "Aparecida de Goiânia", neighborhood: "Jardim Nova Esperança", phone: "62987654321", email: "eduardo.martins@email.com", instagram: "@eduardomartins", referrer: "João Silva - Coordenador", registrationDate: "2024-01-20", status: "Ativo" },
-      { id: 17, name: "Isabela Rocha", address: "Av. Goiás, 250", state: "GO", city: "Aparecida de Goiânia", neighborhood: "Setor Garavelo", phone: "62976543210", email: "isabela.rocha@email.com", instagram: "@isabellarocha", referrer: "Valter Gomes - Assessor Executivo", registrationDate: "2024-01-19", status: "Ativo" },
-      { id: 18, name: "Felipe Nunes", address: "Rua 40, 350", state: "GO", city: "Aparecida de Goiânia", neighborhood: "Vila São João", phone: "62987654321", email: "felipe.nunes@email.com", instagram: "@felipenunes", referrer: "Marcos Santos - Colaborador", registrationDate: "2024-01-18", status: "Ativo" },
-      { id: 19, name: "Mariana Dias", address: "Av. Perimetral Norte, 450", state: "GO", city: "Aparecida de Goiânia", neighborhood: "Setor Central", phone: "62976543210", email: "mariana.dias@email.com", instagram: "@marianadias", referrer: "João Silva - Coordenador", registrationDate: "2024-01-17", status: "Inativo" },
-      { id: 20, name: "Rafael Barbosa", address: "Rua 45, 550", state: "GO", city: "Aparecida de Goiânia", neighborhood: "Jardim das Flores", phone: "62965432109", email: "rafael.barbosa@email.com", instagram: "@rafaelbarbosa", referrer: "Valter Gomes - Assessor Executivo", registrationDate: "2024-01-16", status: "Ativo" }
+      { id: 11, name: "Eduardo Martins", address: "Rua 35, 150", state: "GO", city: "Aparecida de Goiânia", neighborhood: "Jardim Nova Esperança", phone: "62987654321", email: "eduardo.martins@email.com", instagram: "@eduardomartins", referrer: "João Silva - Coordenador", registrationDate: "2024-01-20", status: "Ativo" },
+      { id: 12, name: "Felipe Nunes", address: "Rua 40, 350", state: "GO", city: "Aparecida de Goiânia", neighborhood: "Vila São João", phone: "62987654321", email: "felipe.nunes@email.com", instagram: "@felipenunes", referrer: "Marcos Santos - Colaborador", registrationDate: "2024-01-18", status: "Ativo" },
+      { id: 13, name: "Mariana Dias", address: "Av. Perimetral Norte, 450", state: "GO", city: "Aparecida de Goiânia", neighborhood: "Setor Central", phone: "62976543210", email: "mariana.dias@email.com", instagram: "@marianadias", referrer: "João Silva - Coordenador", registrationDate: "2024-01-17", status: "Inativo" },
     ];
 
     const userData = {
@@ -150,50 +142,6 @@ export default function Dashboard() {
           { id: 3, name: "Ana Carolina Costa", address: "Rua 7, 789", state: "GO", city: "Aparecida de Goiânia", neighborhood: "Vila São José", phone: "62965432109", email: "ana.carolina@email.com", instagram: "@anacarolina", referrer: "João Silva - Coordenador", registrationDate: "2024-01-13", status: "Ativo" },
           { id: 4, name: "Carlos Eduardo Lima", address: "Rua 9, 321", state: "GO", city: "Aparecida de Goiânia", neighborhood: "Jardim Nova Era", phone: "62954321098", email: "carlos.eduardo@email.com", instagram: "@carloseduardo", referrer: "João Silva - Coordenador", registrationDate: "2024-01-12", status: "Ativo" },
           { id: 5, name: "Fernanda Rodrigues", address: "Av. Perimetral Norte, 654", state: "GO", city: "Aparecida de Goiânia", neighborhood: "Setor Central", phone: "62943210987", email: "fernanda.rodrigues@email.com", instagram: "@fernandarodrigues", referrer: "João Silva - Coordenador", registrationDate: "2024-01-11", status: "Ativo" }
-        ]
-      },
-      valter: {
-        stats: [
-          {
-            title: "Total de Cadastros",
-            value: "856",
-            change: "+8%",
-            icon: Users,
-            color: "text-institutional-blue",
-            bgColor: "bg-institutional-light"
-          },
-          {
-            title: "Postagens Hoje",
-            value: "67",
-            subtitle: "de 856 cadastrados",
-            change: "+3%",
-            icon: MessageSquare,
-            color: "text-institutional-gold",
-            bgColor: "bg-institutional-gold/10"
-          },
-          {
-            title: "Taxa de Engajamento",
-            value: "7.8%",
-            change: "+1.2%",
-            icon: TrendingUp,
-            color: "text-green-600",
-            bgColor: "bg-green-50"
-          },
-          {
-            title: "Novos Hoje",
-            value: "18",
-            change: "+5",
-            icon: Calendar,
-            color: "text-blue-600",
-            bgColor: "bg-blue-50"
-          }
-        ],
-        users: [
-          { id: 1, name: "Roberto Almeida", address: "Rua 15, 100", state: "GO", city: "Aparecida de Goiânia", neighborhood: "Jardim América", phone: "62987654321", email: "roberto.almeida@email.com", instagram: "@robertoalmeida", referrer: "Valter Gomes - Assessor Executivo", registrationDate: "2024-01-10", status: "Ativo" },
-          { id: 2, name: "Juliana Ferreira", address: "Av. Contorno, 200", state: "GO", city: "Aparecida de Goiânia", neighborhood: "Jardim Bela Vista", phone: "62976543210", email: "juliana.ferreira@email.com", instagram: "@julianaferreira", referrer: "Valter Gomes - Assessor Executivo", registrationDate: "2024-01-09", status: "Ativo" },
-          { id: 3, name: "Marcos Antonio Souza", address: "Rua 12, 300", state: "GO", city: "Aparecida de Goiânia", neighborhood: "Vila União", phone: "62965432109", email: "marcos.antonio@email.com", instagram: "@marcosantonio", referrer: "Valter Gomes - Assessor Executivo", registrationDate: "2024-01-08", status: "Ativo" },
-          { id: 4, name: "Patricia Mendes", address: "Av. Goiás, 400", state: "GO", city: "Aparecida de Goiânia", neighborhood: "Setor Garavelo", phone: "62976543210", email: "patricia.mendes@email.com", instagram: "@patriciamendes", referrer: "Valter Gomes - Assessor Executivo", registrationDate: "2024-01-07", status: "Ativo" },
-          { id: 5, name: "Ricardo Barbosa", address: "Rua 8, 500", state: "GO", city: "Aparecida de Goiânia", neighborhood: "Setor Morada do Sol", phone: "62943210987", email: "ricardo.barbosa@email.com", instagram: "@ricardobarbosa", referrer: "Valter Gomes - Assessor Executivo", registrationDate: "2024-01-06", status: "Ativo" }
         ]
       },
       marcos: {
@@ -244,16 +192,16 @@ export default function Dashboard() {
         stats: [
           {
             title: "Total de Cadastros",
-            value: "3,247",
-            change: "+15%",
+            value: "1,891",
+            change: "+12%",
             icon: Users,
             color: "text-institutional-blue",
             bgColor: "bg-institutional-light"
           },
           {
             title: "Usuários Ativos",
-            value: "2,891",
-            subtitle: "de 3,247 cadastrados",
+            value: "1,890",
+            subtitle: "de 1,891 cadastrados",
             change: "+8%",
             icon: MessageSquare,
             color: "text-institutional-gold",
@@ -261,7 +209,7 @@ export default function Dashboard() {
           },
           {
             title: "Taxa de Engajamento",
-            value: "89.0%",
+            value: "99.9%",
             change: "+3.2%",
             icon: TrendingUp,
             color: "text-green-600",
@@ -269,8 +217,8 @@ export default function Dashboard() {
           },
           {
             title: "Novos Hoje",
-            value: "47",
-            change: "+12",
+            value: "29",
+            change: "+7",
             icon: Calendar,
             color: "text-blue-600",
             bgColor: "bg-blue-50"
