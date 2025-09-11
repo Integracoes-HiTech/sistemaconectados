@@ -346,6 +346,105 @@ export default function Dashboard() {
           </Card>
         </div>
 
+        {/* Novos Reports - Engagement Rate e Registration Count */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          {/* Gráfico de Taxa de Engajamento */}
+          <Card className="shadow-[var(--shadow-card)]">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-institutional-blue">
+                <TrendingUp className="w-5 h-5" />
+                Taxa de Engajamento
+              </CardTitle>
+              <CardDescription>
+                {isAdminUser 
+                  ? 'Taxa de engajamento geral do sistema' 
+                  : 'Sua taxa de engajamento'
+                }
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-center h-[300px]">
+                <div className="text-center">
+                  <div className="text-4xl font-bold text-institutional-gold mb-2">
+                    {stats.engagement_rate}%
+                  </div>
+                  <div className="text-sm text-muted-foreground">
+                    {stats.engagement_rate >= 80 ? 'Excelente engajamento!' : 
+                     stats.engagement_rate >= 60 ? 'Bom engajamento' : 
+                     stats.engagement_rate >= 40 ? 'Engajamento moderado' : 
+                     'Engajamento baixo'}
+                  </div>
+                  <div className="mt-4 w-full bg-gray-200 rounded-full h-2">
+                    <div 
+                      className="bg-institutional-gold h-2 rounded-full transition-all duration-500"
+                      style={{ width: `${Math.min(stats.engagement_rate, 100)}%` }}
+                    ></div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Gráfico de Registros por Links */}
+          <Card className="shadow-[var(--shadow-card)]">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-institutional-blue">
+                <Share2 className="w-5 h-5" />
+                Link com Mais Registros
+              </CardTitle>
+              <CardDescription>
+                {isAdminUser 
+                  ? 'Link com maior número de registros do sistema' 
+                  : 'Seu link com maior número de registros'
+                }
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {userLinks.length > 0 ? (
+                (() => {
+                  const topLink = userLinks.reduce((max, link) => 
+                    link.registration_count > max.registration_count ? link : max
+                  );
+                  
+                  return (
+                    <div className="flex items-center justify-center h-[300px]">
+                      <div className="text-center">
+                        <div className="text-4xl font-bold text-institutional-gold mb-2">
+                          {topLink.registration_count}
+                        </div>
+                        <div className="text-sm text-muted-foreground mb-4">
+                          Registros via link
+                        </div>
+                        <div className="bg-institutional-light p-4 rounded-lg">
+                          <div className="text-sm font-medium text-institutional-blue mb-1">
+                            Link de: {topLink.referrer_name}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {topLink.click_count} cliques • Criado em {new Date(topLink.created_at).toLocaleDateString('pt-BR')}
+                          </div>
+                        </div>
+                        <div className="mt-4 w-full bg-gray-200 rounded-full h-2">
+                          <div 
+                            className="bg-institutional-gold h-2 rounded-full transition-all duration-500"
+                            style={{ width: `${Math.min((topLink.registration_count / Math.max(...userLinks.map(l => l.registration_count))) * 100, 100)}%` }}
+                          ></div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()
+              ) : (
+                <div className="flex items-center justify-center h-[300px] text-muted-foreground">
+                  <div className="text-center">
+                    <Share2 className="w-12 h-12 mx-auto mb-4 text-muted-foreground/50" />
+                    <p>Nenhum link encontrado</p>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
         {/* Cards de Resumo */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           <Card className="shadow-[var(--shadow-card)] border-l-4 border-l-institutional-gold">
