@@ -1,0 +1,70 @@
+// hooks/useStats.ts
+import { useState, useEffect } from 'react'
+import { supabase, Stats } from '@/lib/supabase'
+
+export const useStats = (referrer?: string) => {
+  const [stats, setStats] = useState<Stats>({
+    total_users: 0,
+    active_users: 0,
+    recent_registrations: 0,
+    engagement_rate: 0
+  })
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    fetchStats()
+  }, [referrer])
+
+  const fetchStats = async () => {
+    try {
+      setLoading(true)
+      setError(null)
+
+      // Query base para usuários
+      let query = supabase.from('users').select('*')
+      
+      if (referrer) {
+        query = query.eq('referrer', referrer)
+      }
+
+      const { data: users, error } = await query
+
+      if (error) throw error
+
+      // Calcular estatísticas
+      const totalUsers = users?.length || 0
+      const activeUsers = users?.filter(user => user.status === 'Ativo').length || 0
+      
+      // Usuários dos últimos 7 dias
+      const sevenDaysAgo = new Date()
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
+      
+      const recentRegistrations = users?.filter(user => {
+        const regDate = new Date(user.registration_date)
+        return regDate >= sevenDaysAgo
+      }).length || 0
+
+      // Taxa de engajamento (usuários ativos / total)
+      const engagementRate = totalUsers > 0 ? (activeUsers / totalUsers) * 100 : 0
+
+      setStats({
+        total_users: totalUsers,
+        active_users: activeUsers,
+        recent_registrations: recentRegistrations,
+        engagement_rate: Number(engagementRate.toFixed(1))
+      })
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erro ao carregar estatísticas')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return {
+    stats,
+    loading,
+    error,
+    refetch: fetchStats
+  }
+}

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,6 +6,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Logo } from "@/components/Logo";
 import { useToast } from "@/hooks/use-toast";
 import { User, Phone, Mail, Instagram, UserPlus, CheckCircle, MapPin, Building, AlertCircle } from "lucide-react";
+import { useUsers } from "@/hooks/useUsers";
+import { useUserLinks, UserLink } from "@/hooks/useUserLinks";
+import { useCredentials } from "@/hooks/useCredentials";
+import { emailService, generateCredentials } from "@/services/emailService";
+import { AuthUser } from "@/lib/supabase";
 
 export default function PublicRegister() {
   const { linkId } = useParams();
@@ -20,9 +25,15 @@ export default function PublicRegister() {
     instagram: "",
     referrer: ""
   });
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
-  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+  const [referrerData, setReferrerData] = useState<AuthUser | null>(null);
+  const [linkData, setLinkData] = useState<UserLink | null>(null);
+  
+  const { addUser } = useUsers();
+  const { getUserByLinkId } = useUserLinks();
+  const { createUserWithCredentials } = useCredentials();
   const { toast } = useToast();
 
   // Dados mockados para UF e Cidades
@@ -41,24 +52,20 @@ export default function PublicRegister() {
 
   const estados = Object.keys(estadosECidades);
 
-  // Extrair informações do usuário do linkId
-  const getUserFromLinkId = (linkId: string | undefined) => {
+  // Função fallback para dados mockados (caso não encontre no banco)
+  const getUserFromLinkIdFallback = (linkId: string | undefined) => {
     if (!linkId) return "Usuário do Sistema";
     
-    // Extrair username do linkId (formato: username-timestamp)
     const username = linkId.split('-')[0];
-    
-    // Mapear username para nome completo
     const userMap: Record<string, string> = {
       joao: "João Silva - Coordenador",
       marcos: "Marcos Santos - Colaborador",
-      admin: "Admin - Administrador"
+      admin: "Admin - Administrador",
+      wegneycosta: "Wegney Costa - Vereador"
     };
     
     return userMap[username] || "Usuário do Sistema";
   };
-
-  const referrerName = getUserFromLinkId(linkId);
 
   // Funções de validação
   const validateEmail = (email: string) => {
@@ -172,14 +179,40 @@ export default function PublicRegister() {
     }
   };
 
-  // Preencher automaticamente o campo referrer com o nome de quem gerou o link
-  React.useEffect(() => {
-    setFormData(prev => ({ ...prev, referrer: referrerName }));
-  }, [referrerName]);
+  // Buscar dados do referrer quando o componente carregar
+  useEffect(() => {
+    const fetchReferrerData = async () => {
+      if (!linkId) return;
+      
+      try {
+        const result = await getUserByLinkId(linkId);
+        if (result.success && result.data) {
+          setLinkData(result.data);
+          setReferrerData(result.data.user_data);
+          setFormData(prev => ({ 
+            ...prev, 
+            referrer: result.data.user_data?.full_name || 'Usuário do Sistema' 
+          }));
+        } else {
+          // Fallback para dados mockados se não encontrar no banco
+          const fallbackData = getUserFromLinkIdFallback(linkId);
+          setFormData(prev => ({ ...prev, referrer: fallbackData }));
+        }
+      } catch (error) {
+        console.error('Erro ao buscar dados do referrer:', error);
+        const fallbackData = getUserFromLinkIdFallback(linkId);
+        setFormData(prev => ({ ...prev, referrer: fallbackData }));
+      }
+    };
+
+    if (linkId) {
+      fetchReferrerData();
+    }
+  }, [linkId, getUserByLinkId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
+    
     // Valida todos os campos obrigatórios
     if (!validateRequiredFields()) {
       toast({
@@ -192,15 +225,78 @@ export default function PublicRegister() {
 
     setIsLoading(true);
 
-    // Simulação de cadastro - seria integrado com Supabase
-    setTimeout(() => {
+    try {
+      // Preparar dados para salvar no banco
+      const userData = {
+        name: formData.name.trim(),
+        address: formData.address.trim(),
+        state: formData.state,
+        city: formData.city,
+        neighborhood: formData.neighborhood.trim(),
+        phone: formData.phone,
+        email: formData.email.trim().toLowerCase(),
+        instagram: formData.instagram,
+        referrer: formData.referrer,
+        registration_date: new Date().toISOString().split('T')[0],
+        status: 'Ativo' as const
+      };
+
+      // 1. Salvar usuário na tabela users
+      const userResult = await addUser(userData);
+      
+      if (!userResult.success) {
+        throw new Error(userResult.error || "Erro ao salvar usuário");
+      }
+
+      // 2. Criar credenciais e usuário de autenticação
+      const credentialsResult = await createUserWithCredentials(userData);
+      
+      if (!credentialsResult.success) {
+        throw new Error((credentialsResult as { error: string }).error);
+      }
+
+      // 3. Enviar email com credenciais
+      const emailData = {
+        to_email: userData.email,
+        to_name: userData.name,
+        from_name: "Sistema Conectados",
+        login_url: credentialsResult.credentials!.login_url,
+        username: credentialsResult.credentials!.username,
+        password: credentialsResult.credentials!.password,
+        referrer_name: formData.referrer
+      };
+
+      console.log("Enviando email com dados:", emailData);
+      const emailResult = await emailService.sendWelcomeEmail(emailData);
+      
+      if (!emailResult.success) {
+        console.error("❌ Email não foi enviado:", emailResult.error);
+        toast({
+          title: "Email não enviado",
+          description: `Erro: ${emailResult.error}. Verifique o console para mais detalhes.`,
+          variant: "destructive",
+        });
+      } else {
+        console.log("✅ Email enviado com sucesso!");
+      }
+
+      // 4. Sucesso
       setIsSuccess(true);
       toast({
         title: "Cadastro realizado com sucesso!",
-        description: `Cadastro vinculado a ${referrerName}. As credenciais de acesso foram enviadas para seu email.`,
+        description: `Cadastro vinculado a ${formData.referrer}. As credenciais de acesso foram enviadas para seu email.`,
       });
+
+    } catch (error) {
+      console.error('Erro no cadastro:', error);
+      toast({
+        title: "Erro no cadastro",
+        description: error instanceof Error ? error.message : "Ocorreu um erro ao salvar os dados. Tente novamente.",
+        variant: "destructive",
+      });
+    } finally {
       setIsLoading(false);
-    }, 2000);
+    }
   };
 
   if (isSuccess) {
@@ -224,7 +320,7 @@ export default function PublicRegister() {
             <div className="bg-institutional-light rounded-lg p-4 mb-4">
               <p className="text-sm text-institutional-blue">
                 <strong>Cadastro vinculado a:</strong><br />
-                {referrerName}
+                {formData.referrer}
               </p>
             </div>
             <p className="text-sm text-institutional-blue bg-institutional-light p-3 rounded-lg">
@@ -254,7 +350,12 @@ export default function PublicRegister() {
           <p className="text-white text-sm">
             <strong>Link gerado por:</strong>
           </p>
-          <p className="font-bold text-institutional-gold">{referrerName}</p>
+          <p className="font-bold text-institutional-gold">{formData.referrer}</p>
+          {referrerData && (
+            <p className="text-gray-300 text-xs mt-1">
+              {referrerData.role} • {referrerData.name}
+            </p>
+          )}
         </div>
         
         <h1 className="text-2xl font-bold text-white mb-2">

@@ -5,30 +5,15 @@ import { Logo } from "@/components/Logo";
 import { useToast } from "@/hooks/use-toast";
 import { User, Lock, Eye, EyeOff } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function Login() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
-
-  // Credenciais mockadas para demonstração
-  const mockCredentials = {
-    joao: "coordenador",
-    marcos: "colaborador",
-    admin: "admin123",
-    wegneycosta: "vereador"
-  };
-
-  // Informações dos usuários
-  const userInfo = {
-    joao: { name: "João Silva", role: "Coordenador", fullName: "João Silva - Coordenador" },
-    marcos: { name: "Marcos Santos", role: "Colaborador", fullName: "Marcos Santos - Colaborador" },
-    admin: { name: "Admin", role: "Administrador", fullName: "Admin - Administrador" },
-    wegneycosta: { name: "Wegney Costa", role: "Vereador", fullName: "Wegney Costa - Vereador" }
-  };
+  const { login, loading } = useAuth();
 
   const handleGoogleLogin = () => {
     toast({
@@ -51,60 +36,14 @@ export default function Login() {
       return;
     }
 
-    setIsLoading(true);
-
-    // Simulação de login - aqui seria integrado com Supabase
-    setTimeout(() => {
-      const normalizedUsername = username.toLowerCase().trim();
-      const expectedPassword = mockCredentials[normalizedUsername as keyof typeof mockCredentials];
-      
-      // Debug logs (remover em produção)
-      console.log('Tentativa de login:', {
-        username: normalizedUsername,
-        password: password,
-        expectedPassword: expectedPassword,
-        isValid: expectedPassword === password
-      });
-      
-      const isValidUser = expectedPassword === password;
-      
-      if (isValidUser) {
-        const user = userInfo[normalizedUsername as keyof typeof userInfo];
-        
-        if (!user) {
-          toast({
-            title: "Erro no sistema",
-            description: "Usuário não encontrado no sistema.",
-            variant: "destructive",
-          });
-          setIsLoading(false);
-          return;
-        }
-
-        toast({
-          title: "Login realizado com sucesso!",
-          description: `Bem-vindo, ${user.name}! Redirecionando para o dashboard...`,
-        });
-        
-        // Armazenar informações do usuário no localStorage
-        localStorage.setItem('loggedUser', JSON.stringify({
-          username: normalizedUsername,
-          ...user
-        }));
-        
-        // Redirecionamento para o dashboard após 1 segundo
-        setTimeout(() => {
-          navigate("/dashboard");
-        }, 1000);
-      } else {
-        toast({
-          title: "Erro no login",
-          description: `Usuário ou senha incorretos. Verifique as credenciais e tente novamente.`,
-          variant: "destructive",
-        });
-      }
-      setIsLoading(false);
-    }, 1500);
+    const result = await login(username, password);
+    
+    if (result.success) {
+      // Redirecionamento para o dashboard após 1 segundo
+      setTimeout(() => {
+        navigate("/dashboard");
+      }, 1000);
+    }
   };
 
   return (
@@ -127,7 +66,7 @@ export default function Login() {
             className="pl-12 h-12 bg-gray-800 border-gray-700 text-white placeholder-gray-400 focus:border-institutional-gold focus:ring-institutional-gold rounded-lg transition-all duration-200"
             required
             autoComplete="username"
-            disabled={isLoading}
+            disabled={loading}
           />
         </div>
 
@@ -142,7 +81,7 @@ export default function Login() {
             className="pl-12 pr-12 h-12 bg-gray-800 border-gray-700 text-white placeholder-gray-400 focus:border-institutional-gold focus:ring-institutional-gold rounded-lg transition-all duration-200"
             required
             autoComplete="current-password"
-            disabled={isLoading}
+            disabled={loading}
             onKeyPress={(e) => {
               if (e.key === 'Enter') {
                 handleSubmit(e as React.FormEvent<HTMLInputElement>);
@@ -153,7 +92,7 @@ export default function Login() {
             type="button"
             onClick={() => setShowPassword(!showPassword)}
             className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-institutional-gold transition-colors duration-200"
-            disabled={isLoading}
+            disabled={loading}
           >
             {showPassword ? (
               <EyeOff className="w-5 h-5" />
@@ -167,10 +106,10 @@ export default function Login() {
         <Button
           type="submit"
           onClick={handleSubmit}
-          disabled={isLoading}
+          disabled={loading}
           className="w-full h-12 bg-institutional-gold hover:bg-institutional-gold/90 text-institutional-blue font-semibold text-lg rounded-lg transition-all duration-200"
         >
-          {isLoading ? (
+          {loading ? (
             <div className="flex items-center gap-2">
               <div className="w-5 h-5 border-2 border-institutional-blue border-t-transparent rounded-full animate-spin" />
               Entrando...
@@ -194,7 +133,7 @@ export default function Login() {
         <Button
           type="button"
           onClick={handleGoogleLogin}
-          disabled={isLoading}
+          disabled={loading}
           variant="outline"
           className="w-full h-12 bg-white hover:bg-gray-50 text-gray-700 font-medium text-lg rounded-lg border border-gray-300 transition-all duration-200 flex items-center gap-3"
         >
@@ -219,6 +158,7 @@ export default function Login() {
           Entrar com Google
         </Button>
       </div>
+  
     </div>
   );
 }
