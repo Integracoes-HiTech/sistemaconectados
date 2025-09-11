@@ -103,6 +103,47 @@ export const useUsers = (referrer?: string) => {
     }
   }
 
+  const checkUserExists = async (email: string, phone: string) => {
+    try {
+      // Normalizar telefone para comparação (remover formatação)
+      const normalizedPhone = phone.replace(/\D/g, '');
+      
+      // Verificar se já existe usuário com este email ou telefone
+      const { data, error } = await supabase
+        .from('users')
+        .select('id, name, email, phone')
+
+      if (error) throw error
+
+      // Verificar manualmente para comparar telefones normalizados
+      const existingUser = data?.find(user => {
+        const userEmailMatch = user.email === email;
+        const userPhoneMatch = user.phone?.replace(/\D/g, '') === normalizedPhone;
+        return userEmailMatch || userPhoneMatch;
+      });
+
+      if (existingUser) {
+        const conflictType = existingUser.email === email ? 'email' : 'telefone'
+        const conflictValue = existingUser.email === email ? email : phone
+        
+        return {
+          exists: true,
+          user: existingUser,
+          conflictType,
+          conflictValue,
+          message: `Usuário já cadastrado com este ${conflictType}: ${conflictValue}`
+        }
+      }
+
+      return { exists: false }
+    } catch (err) {
+      return { 
+        exists: false,
+        error: err instanceof Error ? err.message : 'Erro ao verificar usuário existente' 
+      }
+    }
+  }
+
   return {
     users,
     loading,
@@ -110,6 +151,7 @@ export const useUsers = (referrer?: string) => {
     fetchUsers,
     addUser,
     updateUser,
-    deleteUser
+    deleteUser,
+    checkUserExists
   }
 }

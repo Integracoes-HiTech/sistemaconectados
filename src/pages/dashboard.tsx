@@ -43,14 +43,14 @@ export default function Dashboard() {
   const [filterReferrer, setFilterReferrer] = useState("");
   const { toast } = useToast();
   const navigate = useNavigate();
-  const { user, logout, isAdmin, isCoordenador, isColaborador, isVereador, canViewAllUsers, canViewStats, canGenerateLinks } = useAuth();
+  const { user, logout, isAdmin, isCoordenador, isColaborador, isVereador, canViewAllUsers, canViewOwnUsers, canViewStats, canGenerateLinks } = useAuth();
 
   // Usar dados reais do banco
   const referrerFilter = canViewAllUsers() ? undefined : user?.full_name;
   const { users: allUsers, loading: usersLoading } = useUsers(referrerFilter);
   const { stats, loading: statsLoading } = useStats(referrerFilter);
   const { reportData, loading: reportsLoading } = useReports(referrerFilter);
-  const { links, createLink, loading: linksLoading } = useUserLinks(user?.id);
+  const { userLinks, createLink, loading: linksLoading } = useUserLinks();
 
   const handleLogout = () => {
     logout();
@@ -409,10 +409,10 @@ export default function Dashboard() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-institutional-blue">
               <Users className="w-5 h-5" />
-              {isAdmin() ? 'Todos os Usuários do Sistema' : 'Usuários Cadastrados'}
+              {canViewAllUsers() ? 'Todos os Usuários do Sistema' : 'Meus Usuários Cadastrados'}
             </CardTitle>
             <CardDescription>
-              {isAdmin()
+              {canViewAllUsers()
               ? "Visão consolidada de todos os usuários cadastrados no sistema"
               : "Gerencie e visualize todos os usuários vinculados ao seu link"
             }

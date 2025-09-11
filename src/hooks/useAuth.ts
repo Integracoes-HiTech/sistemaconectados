@@ -101,7 +101,11 @@ export const useAuth = () => {
   }
 
   const canViewAllUsers = () => {
-    return isAdmin() || isCoordenador() || isVereador()
+    return isAdmin() || isVereador()
+  }
+
+  const canViewOwnUsers = () => {
+    return isAdmin() || isVereador() || isCoordenador() || isColaborador()
   }
 
   const canViewStats = () => {
@@ -123,6 +127,7 @@ export const useAuth = () => {
     isColaborador,
     isVereador,
     canViewAllUsers,
+    canViewOwnUsers,
     canViewStats,
     canGenerateLinks
   }

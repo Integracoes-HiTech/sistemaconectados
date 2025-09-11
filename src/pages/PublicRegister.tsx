@@ -10,6 +10,7 @@ import { useUsers } from "@/hooks/useUsers";
 import { useUserLinks, UserLink } from "@/hooks/useUserLinks";
 import { useCredentials } from "@/hooks/useCredentials";
 import { emailService, generateCredentials } from "@/services/emailService";
+import { validateInstagramAccount } from "@/services/instagramValidation";
 import { AuthUser } from "@/lib/supabase";
 
 export default function PublicRegister() {
@@ -30,8 +31,10 @@ export default function PublicRegister() {
   const [isSuccess, setIsSuccess] = useState(false);
   const [referrerData, setReferrerData] = useState<AuthUser | null>(null);
   const [linkData, setLinkData] = useState<UserLink | null>(null);
+  const [isValidatingInstagram, setIsValidatingInstagram] = useState(false);
+  const [instagramValidationError, setInstagramValidationError] = useState<string | null>(null);
   
-  const { addUser } = useUsers();
+  const { addUser, checkUserExists } = useUsers();
   const { getUserByLinkId } = useUserLinks();
   const { createUserWithCredentials } = useCredentials();
   const { toast } = useToast();
@@ -69,7 +72,9 @@ export default function PublicRegister() {
 
   // Funções de validação
   const validateEmail = (email: string) => {
-    return email.includes('@') && email.length > 0;
+    // Validação mais rigorosa de email
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    return emailRegex.test(email.trim()) && email.trim().length > 0;
   };
 
   const validateName = (name: string) => {
@@ -97,6 +102,36 @@ export default function PublicRegister() {
       return `(${numbers.slice(0, 2)}) ${numbers.slice(2)}`;
     } else {
       return `(${numbers.slice(0, 2)}) ${numbers.slice(2, 7)}-${numbers.slice(7, 11)}`;
+    }
+  };
+
+  const validateInstagram = async (instagram: string) => {
+    if (!instagram.trim()) {
+      return { isValid: false, error: 'Instagram é obrigatório' };
+    }
+
+    // Remove @ se o usuário digitou
+    const cleanInstagram = instagram.replace('@', '');
+    
+    if (cleanInstagram.length < 3) {
+      return { isValid: false, error: 'Nome de usuário do Instagram deve ter pelo menos 3 caracteres' };
+    }
+
+    setIsValidatingInstagram(true);
+    setInstagramValidationError(null);
+
+    try {
+      const result = await validateInstagramAccount(cleanInstagram);
+      
+      if (result.status) {
+        return { isValid: true, error: null };
+      } else {
+        return { isValid: false, error: result.message };
+      }
+    } catch (error) {
+      return { isValid: false, error: 'Erro ao validar conta do Instagram' };
+    } finally {
+      setIsValidatingInstagram(false);
     }
   };
 
@@ -134,11 +169,13 @@ export default function PublicRegister() {
     if (!formData.email.trim()) {
       errors.email = 'Email é obrigatório';
     } else if (!validateEmail(formData.email)) {
-      errors.email = 'Email deve conter @';
+      errors.email = 'Email deve ter formato válido (ex: usuario@dominio.com)';
     }
     
     if (!formData.instagram.trim()) {
       errors.instagram = 'Instagram é obrigatório';
+    } else if (instagramValidationError) {
+      errors.instagram = instagramValidationError;
     }
     
     setFormErrors(errors);
@@ -162,6 +199,21 @@ export default function PublicRegister() {
     // Limpa o erro do campo quando o usuário começa a digitar
     if (formErrors[field]) {
       setFormErrors(prev => ({ ...prev, [field]: '' }));
+    }
+
+    // Limpa erro de validação do Instagram
+    if (field === 'instagram' && instagramValidationError) {
+      setInstagramValidationError(null);
+    }
+  };
+
+  const handleInstagramBlur = async () => {
+    if (formData.instagram.trim()) {
+      const validation = await validateInstagram(formData.instagram);
+      if (!validation.isValid) {
+        setInstagramValidationError(validation.error);
+        setFormErrors(prev => ({ ...prev, instagram: validation.error }));
+      }
     }
   };
 
@@ -226,6 +278,19 @@ export default function PublicRegister() {
     setIsLoading(true);
 
     try {
+      // Verificar se usuário já existe antes de salvar
+      const userExistsCheck = await checkUserExists(formData.email.trim().toLowerCase(), formData.phone);
+      
+      if (userExistsCheck.exists) {
+        toast({
+          title: "Usuário já cadastrado",
+          description: userExistsCheck.message,
+          variant: "destructive",
+        });
+        setIsLoading(false);
+        return;
+      }
+
       // Preparar dados para salvar no banco
       const userData = {
         name: formData.name.trim(),
@@ -509,7 +574,7 @@ export default function PublicRegister() {
             <Mail className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
             <Input
               type="email"
-              placeholder="Email (deve conter @)"
+              placeholder="Email (ex: usuario@dominio.com)"
               value={formData.email}
               onChange={(e) => handleInputChange('email', e.target.value)}
               className={`pl-12 h-12 bg-gray-800 border-gray-700 text-white placeholder-gray-400 focus:border-institutional-gold focus:ring-institutional-gold rounded-lg ${formErrors.email ? 'border-red-500' : ''}`}
@@ -533,9 +598,16 @@ export default function PublicRegister() {
               placeholder="Instagram (@seuusuario)"
               value={formData.instagram}
               onChange={(e) => handleInputChange('instagram', e.target.value.replace('@', ''))}
+              onBlur={handleInstagramBlur}
               className={`pl-12 h-12 bg-gray-800 border-gray-700 text-white placeholder-gray-400 focus:border-institutional-gold focus:ring-institutional-gold rounded-lg ${formErrors.instagram ? 'border-red-500' : ''}`}
               required
+              disabled={isValidatingInstagram}
             />
+            {isValidatingInstagram && (
+              <div className="absolute right-4 top-1/2 transform -translate-y-1/2">
+                <div className="w-5 h-5 border-2 border-institutional-gold border-t-transparent rounded-full animate-spin" />
+              </div>
+            )}
           </div>
           {formErrors.instagram && (
             <div className="flex items-center gap-1 text-red-400 text-sm">
