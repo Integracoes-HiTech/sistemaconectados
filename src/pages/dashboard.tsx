@@ -163,53 +163,6 @@ export default function Dashboard() {
     return matchesSearch && matchesInstagram && matchesEmail && matchesPhone && matchesAddress && matchesCity && matchesNeighborhood && matchesStatus && matchesReferrer;
   });
 
-  // Calcular estatísticas dinâmicas baseadas nos dados filtrados
-  const calculateStats = () => {
-    const totalUsers = filteredUsers.length;
-    const activeUsers = filteredUsers.filter(user => user.status === "Ativo").length;
-    
-    // Usuários por cidade/bairro
-    const usersByLocation = filteredUsers.reduce((acc, user) => {
-      const location = `${user.city} - ${user.neighborhood}`;
-      acc[location] = (acc[location] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
-    
-    // Cadastros recentes (últimos 7 dias)
-    const sevenDaysAgo = new Date();
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-    
-    const recentRegistrations = filteredUsers.filter(user => {
-      const regDate = new Date(user.registration_date);
-      return regDate >= sevenDaysAgo;
-    });
-    
-    // Cadastros por dia (últimos 7 dias)
-    const registrationsByDay = [];
-    for (let i = 6; i >= 0; i--) {
-      const date = new Date();
-      date.setDate(date.getDate() - i);
-      const dateStr = date.toISOString().split('T')[0];
-      
-      const count = filteredUsers.filter(user => user.registration_date === dateStr).length;
-      registrationsByDay.push({
-        date: date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }),
-        count
-      });
-    }
-    
-    return {
-      totalUsers,
-      activeUsers,
-      usersByLocation,
-      recentRegistrations: recentRegistrations.length,
-      registrationsByDay,
-      engagementRate: totalUsers > 0 ? ((activeUsers / totalUsers) * 100).toFixed(1) : "0"
-    };
-  };
-
-  const dynamicStats = calculateStats();
-
   // Loading state
   if (usersLoading || statsLoading || reportsLoading || linksLoading) {
     return (
@@ -268,14 +221,14 @@ export default function Dashboard() {
             </p>
           </div>
           
-            {!isAdminUser && (
+            {(canGenerateLinks() || isAdminUser) && (
           <div className="flex flex-col sm:flex-row gap-3">
             <Button
               onClick={generateLink}
               className="bg-institutional-gold hover:bg-institutional-gold/90 text-institutional-blue font-medium"
             >
               <Share2 className="w-4 h-4 mr-2" />
-              Gerar Link Único
+              {isAdminUser ? 'Gerar Link para Coordenador' : 'Gerar Link Único'}
             </Button>
             
             {userLink && (
@@ -294,7 +247,9 @@ export default function Dashboard() {
 
         {userLink && (
           <div className="mt-4 p-3 bg-institutional-light rounded-lg border border-institutional-gold/30">
-            <p className="text-sm text-institutional-blue font-medium mb-1">Seu link único:</p>
+            <p className="text-sm text-institutional-blue font-medium mb-1">
+              {isAdminUser ? 'Link para cadastro de Coordenador:' : 'Seu link único:'}
+            </p>
             <code className="text-xs break-all text-muted-foreground">{userLink}</code>
           </div>
         )}
@@ -338,7 +293,7 @@ export default function Dashboard() {
                 Cadastros Recentes
               </CardTitle>
               <CardDescription>
-                Últimos 7 dias - {dynamicStats.recentRegistrations} novos cadastros
+                Últimos 7 dias - {stats.recent_registrations} novos cadastros
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -433,9 +388,7 @@ export default function Dashboard() {
                 </div>
               </div>
             </CardContent>
-          </Card>
-
-          <Card className="shadow-[var(--shadow-card)] border-l-4 border-l-institutional-gold">
+         
             <CardContent className="p-6">
           
             </CardContent>
@@ -670,19 +623,11 @@ export default function Dashboard() {
           <div className="mt-6 p-4 bg-institutional-light rounded-lg">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">
-                  {isAdminUser ? 'Total de usuários cadastrados' : 'Meus usuários cadastrados'}
-                </p>
-                <p className="text-2xl font-bold text-institutional-blue">{allUsers.length}</p>
+             
+        
               </div>
-              <div className="text-right">
-                <p className="text-sm text-muted-foreground">Resultados encontrados</p>
-                <p className="text-2xl font-bold text-institutional-gold">{filteredUsers.length}</p>
-              </div>
-              <div className="text-right">
-                <p className="text-sm text-muted-foreground">Taxa de engajamento</p>
-                <p className="text-2xl font-bold text-green-600">{stats.engagement_rate}%</p>
-              </div>
+            
+           
             </div>
           </div>
         </CardContent>

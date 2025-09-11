@@ -48,15 +48,15 @@ export const useCredentials = () => {
           .single();
 
         if (referrerData) {
-          // Se referrer é Admin, usuário é Coordenador
-          if (referrerData.role === 'Admin') {
+          // Se referrer é Admin/Administrador, usuário é Coordenador
+          if (referrerData.role === 'Admin' || referrerData.role === 'Administrador') {
             userRole = 'Coordenador';
             fullName = `${userData.name} - Coordenador`;
           }
-          // Se referrer é Coordenador, usuário é Colaborador
+          // Se referrer é Coordenador, usuário é Usuário
           else if (referrerData.role === 'Coordenador') {
-            userRole = 'Colaborador';
-            fullName = `${userData.name} - Colaborador`;
+            userRole = 'Usuário';
+            fullName = `${userData.name} - Usuário`;
           }
           // Se referrer é Vereador, usuário é Usuário
           else if (referrerData.role === 'Vereador') {
