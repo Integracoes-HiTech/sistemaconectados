@@ -8,6 +8,9 @@ export const useUsers = (referrer?: string) => {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
+    // Limpar estado anterior antes de buscar novos dados
+    setUsers([])
+    setError(null)
     fetchUsers()
   }, [referrer])
 

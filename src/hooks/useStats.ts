@@ -13,6 +13,14 @@ export const useStats = (referrer?: string) => {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
+    // Limpar estado anterior antes de buscar novos dados
+    setStats({
+      total_users: 0,
+      active_users: 0,
+      recent_registrations: 0,
+      engagement_rate: 0
+    })
+    setError(null)
     fetchStats()
   }, [referrer])
 

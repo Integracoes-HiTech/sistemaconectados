@@ -60,11 +60,39 @@ export default function Dashboard() {
     referrerFilter,
     userIdFilter
   });
-  
+
+  // Debug adicional: verificar todas as funções de role
+  console.log('🔍 Debug Roles:', {
+    username: user?.username,
+    role: user?.role,
+    isAdmin: isAdmin(),
+    isCoordenador: isCoordenador(),
+    isColaborador: isColaborador(),
+    isVereador: isVereador(),
+    fullName: user?.full_name
+  });
+
   const { users: allUsers, loading: usersLoading } = useUsers(referrerFilter);
   const { stats, loading: statsLoading } = useStats(referrerFilter);
   const { reportData, loading: reportsLoading } = useReports(referrerFilter);
   const { userLinks, createLink, loading: linksLoading } = useUserLinks(userIdFilter);
+
+  // Debug: verificar o que está sendo passado para os hooks
+  console.log('🔍 Debug Hooks:', {
+    referrerFilter,
+    userIdFilter,
+    allUsersCount: allUsers.length,
+    firstUserReferrer: allUsers[0]?.referrer
+  });
+
+  // Debug: verificar dados carregados
+  console.log('📊 Debug Dados:', {
+    totalUsers: allUsers.length,
+    firstUserReferrer: allUsers[0]?.referrer,
+    userFullName: user?.full_name,
+    shouldSeeAll: isAdminUser,
+    shouldSeeOnly: user?.full_name
+  });
 
   const handleLogout = () => {
     logout();
@@ -111,26 +139,26 @@ export default function Dashboard() {
   };
 
   // Filtrar usuários baseado na pesquisa e filtros
-  const filteredUsers = allUsers.filter(user => {
+  const filteredUsers = allUsers.filter(userItem => {
     const matchesSearch = searchTerm === "" || 
-      user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.phone.includes(searchTerm) ||
-      user.instagram.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.address.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.city.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.neighborhood.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.state.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.referrer.toLowerCase().includes(searchTerm.toLowerCase());
+      userItem.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      userItem.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      userItem.phone.includes(searchTerm) ||
+      userItem.instagram.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      userItem.address.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      userItem.city.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      userItem.neighborhood.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      userItem.state.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      userItem.referrer.toLowerCase().includes(searchTerm.toLowerCase());
 
-    const matchesInstagram = filterInstagram === "" || user.instagram.toLowerCase().includes(filterInstagram.toLowerCase());
-    const matchesEmail = filterEmail === "" || user.email.toLowerCase().includes(filterEmail.toLowerCase());
-    const matchesPhone = filterPhone === "" || user.phone.includes(filterPhone);
-    const matchesAddress = filterAddress === "" || user.address.toLowerCase().includes(filterAddress.toLowerCase());
-    const matchesCity = filterCity === "" || user.city.toLowerCase().includes(filterCity.toLowerCase());
-    const matchesNeighborhood = filterNeighborhood === "" || user.neighborhood.toLowerCase().includes(filterNeighborhood.toLowerCase());
-    const matchesStatus = filterStatus === "" || user.status === filterStatus;
-    const matchesReferrer = filterReferrer === "" || user.referrer.toLowerCase().includes(filterReferrer.toLowerCase());
+    const matchesInstagram = filterInstagram === "" || userItem.instagram.toLowerCase().includes(filterInstagram.toLowerCase());
+    const matchesEmail = filterEmail === "" || userItem.email.toLowerCase().includes(filterEmail.toLowerCase());
+    const matchesPhone = filterPhone === "" || userItem.phone.includes(filterPhone);
+    const matchesAddress = filterAddress === "" || userItem.address.toLowerCase().includes(filterAddress.toLowerCase());
+    const matchesCity = filterCity === "" || userItem.city.toLowerCase().includes(filterCity.toLowerCase());
+    const matchesNeighborhood = filterNeighborhood === "" || userItem.neighborhood.toLowerCase().includes(filterNeighborhood.toLowerCase());
+    const matchesStatus = filterStatus === "" || userItem.status === filterStatus;
+    const matchesReferrer = filterReferrer === "" || userItem.referrer.toLowerCase().includes(filterReferrer.toLowerCase());
 
     return matchesSearch && matchesInstagram && matchesEmail && matchesPhone && matchesAddress && matchesCity && matchesNeighborhood && matchesStatus && matchesReferrer;
   });

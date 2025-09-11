@@ -25,6 +25,14 @@ export const useReports = (referrer?: string) => {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
+    // Limpar estado anterior antes de buscar novos dados
+    setReportData({
+      usersByLocation: {},
+      registrationsByDay: [],
+      usersByStatus: [],
+      recentActivity: []
+    })
+    setError(null)
     fetchReportData()
   }, [referrer])
 

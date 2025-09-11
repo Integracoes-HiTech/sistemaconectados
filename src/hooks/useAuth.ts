@@ -84,20 +84,24 @@ export const useAuth = () => {
     return user !== null
   }
 
+  const isUsuario = () => {
+    return user?.role === 'Usuário'
+  }
+
   const isAdmin = () => {
-    return user?.role === 'admin' || user?.username === 'wegneycosta'
+    return user?.role === 'admin' || user?.role === 'Administrador' || user?.username === 'wegneycosta'
   }
 
   const isCoordenador = () => {
-    return user?.role === 'Coordenador' || user?.role === 'admin' || user?.username === 'wegneycosta'
+    return user?.role === 'Coordenador' || user?.role === 'admin' || user?.role === 'Administrador' || user?.role === 'Usuário' || user?.username === 'wegneycosta'
   }
 
   const isColaborador = () => {
-    return user?.role === 'Colaborador' || user?.role === 'Coordenador' || user?.role === 'admin' || user?.username === 'wegneycosta'
+    return user?.role === 'Colaborador' || user?.role === 'Coordenador' || user?.role === 'admin' || user?.role === 'Administrador' || user?.role === 'Usuário' || user?.username === 'wegneycosta'
   }
 
   const isVereador = () => {
-    return user?.role === 'Vereador' || user?.role === 'admin' || user?.username === 'wegneycosta'
+    return user?.role === 'Vereador' || user?.role === 'admin' || user?.role === 'Administrador' || user?.role === 'Usuário' || user?.username === 'wegneycosta'
   }
 
   const canViewAllUsers = () => {
