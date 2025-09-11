@@ -39,4 +39,5 @@ export interface Stats {
   active_users: number
   recent_registrations: number
   engagement_rate: number
+  today_registrations: number
 }

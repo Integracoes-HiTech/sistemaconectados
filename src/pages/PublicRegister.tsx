@@ -37,7 +37,7 @@ export default function PublicRegister() {
   // const [instagramValidationError, setInstagramValidationError] = useState<string | null>(null);
   
   const { addUser, checkUserExists } = useUsers();
-  const { getUserByLinkId } = useUserLinks();
+  const { getUserByLinkId, incrementClickCount } = useUserLinks();
   const { createUserWithCredentials } = useCredentials();
   const { toast } = useToast();
 
@@ -264,6 +264,9 @@ export default function PublicRegister() {
             ...prev, 
             referrer: result.data.user_data?.full_name || 'Usuário do Sistema' 
           }));
+          
+          // Incrementar contador de cliques quando o link for acessado
+          await incrementClickCount(linkId);
         } else {
           // Fallback para dados mockados se não encontrar no banco
           const fallbackData = getUserFromLinkIdFallback(linkId);
@@ -322,7 +325,7 @@ export default function PublicRegister() {
         instagram: formData.instagram,
         referrer: formData.referrer,
         registration_date: new Date().toISOString().split('T')[0],
-        status: 'Ativo' as const
+        status: 'Inativo' as const
       };
 
       // 1. Salvar usuário na tabela users

@@ -74,7 +74,7 @@ export const useCredentials = () => {
         full_name: fullName,
         email: userData.email,
         phone: userData.phone,
-        is_active: true
+        is_active: false // ← MUDANÇA: Status inativo por padrão
       }
 
       const { data, error } = await supabase

@@ -124,7 +124,7 @@ export default function Dashboard() {
     } else {
       toast({
         title: "Erro ao gerar link",
-        description: result.error || "Tente novamente.",
+        description: 'error' in result ? result.error : "Tente novamente.",
         variant: "destructive",
       });
     }
@@ -479,17 +479,13 @@ export default function Dashboard() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Cadastros Recentes</p>
-                  <p className="text-2xl font-bold text-blue-600">{stats.recent_registrations}</p>
+                  <p className="text-sm font-medium text-muted-foreground">Cadastros Hoje</p>
+                  <p className="text-2xl font-bold text-green-600">{stats.today_registrations}</p>
                 </div>
-                <div className="p-3 rounded-full bg-blue-50">
-                  <Calendar className="w-6 h-6 text-blue-600" />
+                <div className="p-3 rounded-full bg-green-50">
+                  <Calendar className="w-6 h-6 text-green-600" />
                 </div>
               </div>
-            </CardContent>
-         
-            <CardContent className="p-6">
-          
             </CardContent>
           </Card>
       </div>

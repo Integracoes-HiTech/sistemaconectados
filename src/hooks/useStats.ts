@@ -7,7 +7,8 @@ export const useStats = (referrer?: string) => {
     total_users: 0,
     active_users: 0,
     recent_registrations: 0,
-    engagement_rate: 0
+    engagement_rate: 0,
+    today_registrations: 0
   })
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -18,7 +19,8 @@ export const useStats = (referrer?: string) => {
       total_users: 0,
       active_users: 0,
       recent_registrations: 0,
-      engagement_rate: 0
+      engagement_rate: 0,
+      today_registrations: 0
     })
     setError(null)
     fetchStats()
@@ -53,6 +55,14 @@ export const useStats = (referrer?: string) => {
         return regDate >= sevenDaysAgo
       }).length || 0
 
+      // Usuários cadastrados hoje
+      const today = new Date()
+      const todayStr = today.toISOString().split('T')[0] // Formato YYYY-MM-DD
+      
+      const todayRegistrations = users?.filter(user => {
+        return user.registration_date === todayStr
+      }).length || 0
+
       // Taxa de engajamento (usuários ativos / total)
       const engagementRate = totalUsers > 0 ? (activeUsers / totalUsers) * 100 : 0
 
@@ -60,7 +70,8 @@ export const useStats = (referrer?: string) => {
         total_users: totalUsers,
         active_users: activeUsers,
         recent_registrations: recentRegistrations,
-        engagement_rate: Number(engagementRate.toFixed(1))
+        engagement_rate: Number(engagementRate.toFixed(1)),
+        today_registrations: todayRegistrations
       })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erro ao carregar estatísticas')

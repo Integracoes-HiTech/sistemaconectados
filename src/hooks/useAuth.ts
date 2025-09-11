@@ -36,6 +36,24 @@ export const useAuth = () => {
       if (error) throw error
 
       if (data) {
+        // Ativar usuário após login bem-sucedido
+        await supabase
+          .from('auth_users')
+          .update({ 
+            is_active: true,
+            last_login: new Date().toISOString()
+          })
+          .eq('id', data.id)
+
+        // Atualizar status do usuário na tabela users para "Ativo"
+        await supabase
+          .from('users')
+          .update({ 
+            status: 'Ativo',
+            updated_at: new Date().toISOString()
+          })
+          .eq('email', data.email)
+
         const userData: AuthUser = {
           id: data.id,
           username: data.username,

@@ -134,15 +134,80 @@ export const useUserLinks = (userId?: string) => {
     }
   }
 
-  // Função para criar link (wrapper para createUserLink)
+  // Função para incrementar contador de cliques
+  const incrementClickCount = async (linkId: string) => {
+    try {
+      // Primeiro buscar o valor atual do click_count
+      const { data: currentData, error: fetchError } = await supabase
+        .from('user_links')
+        .select('click_count')
+        .eq('link_id', linkId)
+        .eq('is_active', true)
+        .single()
+
+      if (fetchError) throw fetchError
+
+      const { data, error } = await supabase
+        .from('user_links')
+        .update({ 
+          click_count: (currentData?.click_count || 0) + 1,
+          updated_at: new Date().toISOString()
+        })
+        .eq('link_id', linkId)
+        .eq('is_active', true)
+        .select()
+
+      if (error) throw error
+
+      if (data) {
+        // Atualizar estado local
+        setUserLinks(prev => prev.map(link => 
+          link.link_id === linkId ? { ...link, click_count: link.click_count + 1 } : link
+        ))
+      }
+
+      return { success: true, data: data?.[0] }
+    } catch (err) {
+      return { 
+        success: false, 
+        error: err instanceof Error ? err.message : 'Erro ao incrementar contador de cliques' 
+      }
+    }
+  }
+
+  // Função para criar link único por usuário
   const createLink = async (userId: string, referrerName: string, expiresAt?: string) => {
-    // Gerar linkId único baseado no username e timestamp
-    const username = referrerName.split(' ')[0].toLowerCase();
-    const timestamp = Date.now();
-    const linkId = `${username}-${timestamp}`;
-    
-    return await createUserLink(userId, linkId, referrerName, expiresAt);
-  };
+    try {
+      // Verificar se já existe um link ativo para este usuário
+      const { data: existingLinks, error: fetchError } = await supabase
+        .from('user_links')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('is_active', true)
+
+      if (fetchError) throw fetchError
+
+      if (existingLinks && existingLinks.length > 0) {
+        // Se já existe, retornar o link existente
+        const existingLink = existingLinks[0]
+        return { 
+          success: true, 
+          data: existingLink,
+          message: 'Link já existe para este usuário'
+        }
+      }
+
+      // Gerar linkId único baseado no userId
+      const linkId = `user-${userId}`
+      
+      return await createUserLink(userId, linkId, referrerName, expiresAt)
+    } catch (err) {
+      return { 
+        success: false, 
+        error: err instanceof Error ? err.message : 'Erro ao criar link' 
+      }
+    }
+  }
 
   return {
     userLinks,
@@ -152,6 +217,7 @@ export const useUserLinks = (userId?: string) => {
     getUserByLinkId,
     createUserLink,
     createLink,
-    deactivateUserLink
+    deactivateUserLink,
+    incrementClickCount
   }
 }
