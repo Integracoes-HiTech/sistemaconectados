@@ -11,10 +11,16 @@ export interface Credentials {
 export const useCredentials = () => {
   const [loading, setLoading] = useState(false)
 
-  // Gerar credenciais automáticas baseadas no email
+  // Gerar credenciais automáticas baseadas no nome e telefone
   const generateCredentials = (userData: any): Credentials => {
-    const username = userData.email.split('@')[0].toLowerCase()
-    const password = Math.random().toString(36).slice(-8) // Senha aleatória de 8 caracteres
+    // Username baseado no email completo
+    const username = userData.email.toLowerCase()
+    
+    // Senha baseada no nome + últimos dígitos do telefone
+    const firstName = userData.name.split(' ')[0].toLowerCase()
+    const phoneDigits = userData.phone.replace(/\D/g, '') // Remove caracteres não numéricos
+    const lastDigits = phoneDigits.slice(-4) // Últimos 4 dígitos
+    const password = `${firstName}${lastDigits}` // Ex: joao1234
     
     return {
       username,
@@ -28,12 +34,44 @@ export const useCredentials = () => {
     try {
       setLoading(true)
 
+      // Determinar role baseado no referrer
+      let userRole = 'Usuário';
+      let fullName = `${userData.name} - Usuário`;
+
+      // Se tem referrer, verificar o role do referrer
+      if (userData.referrer) {
+        // Buscar dados do referrer para determinar role
+        const { data: referrerData } = await supabase
+          .from('auth_users')
+          .select('role, name')
+          .eq('full_name', userData.referrer)
+          .single();
+
+        if (referrerData) {
+          // Se referrer é Admin, usuário é Coordenador
+          if (referrerData.role === 'Admin') {
+            userRole = 'Coordenador';
+            fullName = `${userData.name} - Coordenador`;
+          }
+          // Se referrer é Coordenador, usuário é Colaborador
+          else if (referrerData.role === 'Coordenador') {
+            userRole = 'Colaborador';
+            fullName = `${userData.name} - Colaborador`;
+          }
+          // Se referrer é Vereador, usuário é Usuário
+          else if (referrerData.role === 'Vereador') {
+            userRole = 'Usuário';
+            fullName = `${userData.name} - Usuário`;
+          }
+        }
+      }
+
       const authUserData = {
         username: credentials.username,
         password: credentials.password,
         name: userData.name,
-        role: 'Usuário',
-        full_name: `${userData.name} - Usuário`,
+        role: userRole,
+        full_name: fullName,
         email: userData.email,
         phone: userData.phone,
         is_active: true

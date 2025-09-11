@@ -16,21 +16,21 @@ export interface UserLink {
   user_data?: AuthUser
 }
 
-export const useUserLinks = () => {
+export const useUserLinks = (userId?: string) => {
   const [userLinks, setUserLinks] = useState<UserLink[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     fetchUserLinks()
-  }, [])
+  }, [userId])
 
   const fetchUserLinks = async () => {
     try {
       setLoading(true)
       setError(null)
 
-      const { data, error } = await supabase
+      let query = supabase
         .from('user_links')
         .select(`
           *,
@@ -38,6 +38,13 @@ export const useUserLinks = () => {
         `)
         .eq('is_active', true)
         .order('created_at', { ascending: false })
+
+      // Se userId for fornecido, filtrar por usuário
+      if (userId) {
+        query = query.eq('user_id', userId)
+      }
+
+      const { data, error } = await query
 
       if (error) throw error
 

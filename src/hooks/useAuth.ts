@@ -25,11 +25,11 @@ export const useAuth = () => {
     try {
       setLoading(true)
 
-      // Buscar usuário na tabela auth_users
+      // Buscar usuário na tabela auth_users por username OU email
       const { data, error } = await supabase
         .from('auth_users')
         .select('*')
-        .eq('username', username.toLowerCase())
+        .or(`username.eq.${username.toLowerCase()},email.eq.${username.toLowerCase()}`)
         .eq('password', password) // Em produção, usar hash da senha
         .single()
 

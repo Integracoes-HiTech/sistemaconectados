@@ -45,12 +45,14 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const { user, logout, isAdmin, isCoordenador, isColaborador, isVereador, canViewAllUsers, canViewOwnUsers, canViewStats, canGenerateLinks } = useAuth();
 
-  // Usar dados reais do banco
+  // Usar dados reais do banco com filtros baseados no role
   const referrerFilter = canViewAllUsers() ? undefined : user?.full_name;
+  const userIdFilter = canViewAllUsers() ? undefined : user?.id;
+  
   const { users: allUsers, loading: usersLoading } = useUsers(referrerFilter);
   const { stats, loading: statsLoading } = useStats(referrerFilter);
   const { reportData, loading: reportsLoading } = useReports(referrerFilter);
-  const { userLinks, createLink, loading: linksLoading } = useUserLinks();
+  const { userLinks, createLink, loading: linksLoading } = useUserLinks(userIdFilter);
 
   const handleLogout = () => {
     logout();
@@ -268,7 +270,7 @@ export default function Dashboard() {
                 Usuários por Localização
               </CardTitle>
               <CardDescription>
-                Distribuição por cidade e bairro
+                {canViewAllUsers() ? 'Distribuição por cidade e bairro' : 'Distribuição dos seus usuários por localização'}
               </CardDescription>
             </CardHeader>
             <CardContent>

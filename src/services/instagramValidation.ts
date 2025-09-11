@@ -16,24 +16,38 @@ export async function validateInstagramAccount(username: string): Promise<Instag
       return basicValidation;
     }
 
-    // Tentar validação via API pública (mais confiável)
+    // Tentar validação via webhook
     try {
-      const response = await fetch(
-        `https://www.instagram.com/${cleanUsername}/`,
-        {
-          method: "HEAD", // Usar HEAD para ser mais rápido
-          mode: 'no-cors', // Contornar CORS
-          headers: {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
-          }
+      const webhookUrl = `http://72.60.13.233:8001/webhook/d81103cd-3857-4531-af82-f2a1bda9de5c?username=${encodeURIComponent(cleanUsername)}`;
+      
+      const response = await fetch(webhookUrl, {
+        method: "GET",
+        headers: {
+          "Accept": "application/json",
+          "Content-Type": "application/json"
         }
-      );
+      });
 
-      // Se não deu erro de rede, assumir que existe
-      return { status: true, message: "" };
-    } catch (apiError) {
-      // Se API falhar, usar validação básica
-      console.log('API do Instagram indisponível, usando validação básica');
+      if (response.ok) {
+        const data = await response.json();
+        
+        // Webhook retorna true se válido, false se inválido
+        if (data === true) {
+          return { status: true, message: "" };
+        } else {
+          return {
+            status: false,
+            message: "Não encontramos um usuário com essa conta de instagram"
+          };
+        }
+      } else {
+        // Se webhook falhar, usar validação básica
+        console.log('Webhook do Instagram indisponível, usando validação básica');
+        return basicValidation;
+      }
+    } catch (webhookError) {
+      // Se webhook falhar, usar validação básica
+      console.log('Erro no webhook do Instagram, usando validação básica:', webhookError);
       return basicValidation;
     }
 

@@ -11,9 +11,15 @@ export default function Login() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [capsLockOn, setCapsLockOn] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
   const { login, loading } = useAuth();
+
+  const handleCapsLock = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    const capsLockOn = e.getModifierState && e.getModifierState('CapsLock');
+    setCapsLockOn(capsLockOn);
+  };
 
   const handleGoogleLogin = () => {
     toast({
@@ -60,7 +66,7 @@ export default function Login() {
           <User className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
           <Input
             type="text"
-            placeholder="Usuário"
+              placeholder="Usuário ou Email"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             className="pl-12 h-12 bg-gray-800 border-gray-700 text-white placeholder-gray-400 focus:border-institutional-gold focus:ring-institutional-gold rounded-lg transition-all duration-200"
@@ -78,6 +84,8 @@ export default function Login() {
             placeholder="Senha"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
+            onKeyDown={handleCapsLock}
+            onKeyUp={handleCapsLock}
             className="pl-12 pr-12 h-12 bg-gray-800 border-gray-700 text-white placeholder-gray-400 focus:border-institutional-gold focus:ring-institutional-gold rounded-lg transition-all duration-200"
             required
             autoComplete="current-password"
@@ -101,6 +109,16 @@ export default function Login() {
             )}
           </button>
         </div>
+
+        {/* Aviso de Caps Lock */}
+        {capsLockOn && (
+          <div className="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded-lg text-sm">
+            <div className="flex items-center">
+              <div className="w-4 h-4 bg-yellow-400 rounded-full mr-2"></div>
+              Caps Lock está ativado
+            </div>
+          </div>
+        )}
 
         {/* Botão Log In */}
         <Button
