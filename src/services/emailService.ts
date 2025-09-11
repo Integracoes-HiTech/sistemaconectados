@@ -14,6 +14,7 @@ export interface EmailData {
   username: string
   password: string
   referrer_name: string
+  system_url: string
 }
 
 export const emailService = {
@@ -44,7 +45,9 @@ export const emailService = {
         email: emailData.to_email,
         username: emailData.username,
         password: emailData.password,
-        to_email: emailData.to_email
+        to_email: emailData.to_email,
+        referrer_name: emailData.referrer_name,
+        system_url: emailData.system_url
       }
 
       console.log("Template params:", templateParams);
@@ -121,6 +124,7 @@ export const generateCredentials = (userData: {
   return {
     username,
     password,
-    login_url: `${window.location.origin}/login`
+    login_url: `${window.location.origin}/login`,
+    system_url: 'https://sistemaconectados.vercel.app/'
   }
 }

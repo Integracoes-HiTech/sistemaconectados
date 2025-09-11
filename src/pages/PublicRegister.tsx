@@ -328,7 +328,8 @@ export default function PublicRegister() {
         login_url: credentialsResult.credentials!.login_url,
         username: credentialsResult.credentials!.username,
         password: credentialsResult.credentials!.password,
-        referrer_name: formData.referrer
+        referrer_name: formData.referrer,
+        system_url: 'https://sistemaconectados.vercel.app/'
       };
 
       console.log("Enviando email com dados:", emailData);
@@ -415,11 +416,13 @@ export default function PublicRegister() {
           <p className="text-white text-sm">
             <strong>Link gerado por:</strong>
           </p>
-          <p className="font-bold text-institutional-gold">{formData.referrer}</p>
-          {referrerData && (
-            <p className="text-gray-300 text-xs mt-1">
-              {referrerData.role} • {referrerData.name}
-            </p>
+          {referrerData ? (
+            <>
+              <p className="font-bold text-institutional-gold">{referrerData.name}</p>
+              <p className="text-gray-300 text-xs mt-1">{referrerData.role}</p>
+            </>
+          ) : (
+            <p className="font-bold text-institutional-gold">{formData.referrer}</p>
           )}
         </div>
         
