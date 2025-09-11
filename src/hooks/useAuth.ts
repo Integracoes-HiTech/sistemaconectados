@@ -110,16 +110,16 @@ export const useAuth = () => {
     return user?.role === 'admin' || user?.role === 'Administrador' || user?.username === 'wegneycosta'
   }
 
-  const isCoordenador = () => {
-    return user?.role === 'Coordenador' || user?.role === 'admin' || user?.role === 'Administrador' || user?.role === 'Usuário' || user?.username === 'wegneycosta'
+  const isMembro = () => {
+    return user?.role === 'Membro' || user?.role === 'admin' || user?.role === 'Administrador' || user?.role === 'Convidado' || user?.username === 'wegneycosta'
   }
 
-  const isColaborador = () => {
-    return user?.role === 'Colaborador' || user?.role === 'Coordenador' || user?.role === 'admin' || user?.role === 'Administrador' || user?.role === 'Usuário' || user?.username === 'wegneycosta'
+  const isAmigo = () => {
+    return user?.role === 'Amigo' || user?.role === 'Membro' || user?.role === 'admin' || user?.role === 'Administrador' || user?.role === 'Convidado' || user?.username === 'wegneycosta'
   }
 
-  const isVereador = () => {
-    return user?.role === 'Vereador' || user?.role === 'admin' || user?.role === 'Administrador' || user?.role === 'Usuário' || user?.username === 'wegneycosta'
+  const isConvidado = () => {
+    return user?.role === 'Convidado' || user?.role === 'admin' || user?.role === 'Administrador' || user?.role === 'Convidado' || user?.username === 'wegneycosta'
   }
 
   const canViewAllUsers = () => {
@@ -127,15 +127,15 @@ export const useAuth = () => {
   }
 
   const canViewOwnUsers = () => {
-    return isAdmin() || isVereador() || isCoordenador() || isColaborador()
+    return isAdmin() || isConvidado() || isMembro() || isAmigo()
   }
 
   const canViewStats = () => {
-    return isAdmin() || isCoordenador() || isVereador()
+    return isAdmin() || isMembro() || isConvidado()
   }
 
   const canGenerateLinks = () => {
-    return isAdmin() || isCoordenador() || isVereador() || isColaborador()
+    return isAdmin() || isMembro() || isConvidado() || isAmigo()
   }
 
   return {
@@ -145,9 +145,9 @@ export const useAuth = () => {
     logout,
     isAuthenticated,
     isAdmin,
-    isCoordenador,
-    isColaborador,
-    isVereador,
+    isMembro,
+    isAmigo,
+    isConvidado,
     canViewAllUsers,
     canViewOwnUsers,
     canViewStats,

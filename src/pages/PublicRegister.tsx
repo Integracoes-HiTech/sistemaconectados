@@ -63,10 +63,10 @@ export default function PublicRegister() {
     
     const username = linkId.split('-')[0];
     const userMap: Record<string, string> = {
-      joao: "João Silva - Coordenador",
-      marcos: "Marcos Santos - Colaborador",
+      joao: "João Silva - Membro",
+      marcos: "Marcos Santos - Amigo",
       admin: "Admin - Administrador",
-      wegneycosta: "Wegney Costa - Vereador"
+      wegneycosta: "Wegney Costa - Convidado"
     };
     
     return userMap[username] || "Usuário do Sistema";

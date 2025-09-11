@@ -43,7 +43,7 @@ export default function Dashboard() {
   const [filterReferrer, setFilterReferrer] = useState("");
   const { toast } = useToast();
   const navigate = useNavigate();
-  const { user, logout, isAdmin, isCoordenador, isColaborador, isVereador, canViewAllUsers, canViewOwnUsers, canViewStats, canGenerateLinks } = useAuth();
+  const { user, logout, isAdmin, isMembro, isAmigo, isConvidado, canViewAllUsers, canViewOwnUsers, canViewStats, canGenerateLinks } = useAuth();
 
   // Lógica de filtro por referrer:
   // - Admin: vê todos os usuários (sem filtro)
@@ -66,9 +66,9 @@ export default function Dashboard() {
     username: user?.username,
     role: user?.role,
     isAdmin: isAdmin(),
-    isCoordenador: isCoordenador(),
-    isColaborador: isColaborador(),
-    isVereador: isVereador(),
+    isMembro: isMembro(),
+    isAmigo: isAmigo(),
+    isConvidado: isConvidado(),
     fullName: user?.full_name
   });
 
@@ -228,7 +228,7 @@ export default function Dashboard() {
               className="bg-institutional-gold hover:bg-institutional-gold/90 text-institutional-blue font-medium"
             >
               <Share2 className="w-4 h-4 mr-2" />
-              {isAdminUser ? 'Gerar Link para Coordenador' : 'Gerar Link Único'}
+              {isAdminUser ? 'Gerar Link para Membro' : 'Gerar Link Único'}
             </Button>
             
             {userLink && (
@@ -248,7 +248,7 @@ export default function Dashboard() {
         {userLink && (
           <div className="mt-4 p-3 bg-institutional-light rounded-lg border border-institutional-gold/30">
             <p className="text-sm text-institutional-blue font-medium mb-1">
-              {isAdminUser ? 'Link para cadastro de Coordenador:' : 'Seu link único:'}
+              {isAdminUser ? 'Link para cadastro de Membro:' : 'Seu link único:'}
             </p>
             <code className="text-xs break-all text-muted-foreground">{userLink}</code>
           </div>

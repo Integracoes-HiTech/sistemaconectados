@@ -35,8 +35,8 @@ export const useCredentials = () => {
       setLoading(true)
 
       // Determinar role baseado no referrer
-      let userRole = 'Usuário';
-      let fullName = `${userData.name} - Usuário`;
+      let userRole = 'Convidado';
+      let fullName = `${userData.name} - Convidado`;
 
       // Se tem referrer, verificar o role do referrer
       if (userData.referrer) {
@@ -48,20 +48,20 @@ export const useCredentials = () => {
           .single();
 
         if (referrerData) {
-          // Se referrer é Admin/Administrador, usuário é Coordenador
+          // Se referrer é Admin/Administrador, usuário é Membro
           if (referrerData.role === 'Admin' || referrerData.role === 'Administrador') {
-            userRole = 'Coordenador';
-            fullName = `${userData.name} - Coordenador`;
+            userRole = 'Membro';
+            fullName = `${userData.name} - Membro`;
           }
-          // Se referrer é Coordenador, usuário é Usuário
-          else if (referrerData.role === 'Coordenador') {
-            userRole = 'Usuário';
-            fullName = `${userData.name} - Usuário`;
+          // Se referrer é Membro, usuário é Amigo
+          else if (referrerData.role === 'Membro') {
+            userRole = 'Amigo';
+            fullName = `${userData.name} - Amigo`;
           }
-          // Se referrer é Vereador, usuário é Usuário
-          else if (referrerData.role === 'Vereador') {
-            userRole = 'Usuário';
-            fullName = `${userData.name} - Usuário`;
+          // Se referrer é Amigo, usuário é Convidado
+          else if (referrerData.role === 'Amigo') {
+            userRole = 'Convidado';
+            fullName = `${userData.name} - Convidado`;
           }
         }
       }
