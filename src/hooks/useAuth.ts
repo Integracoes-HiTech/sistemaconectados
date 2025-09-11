@@ -101,7 +101,7 @@ export const useAuth = () => {
   }
 
   const canViewAllUsers = () => {
-    return isAdmin() || isVereador()
+    return isAdmin()
   }
 
   const canViewOwnUsers = () => {

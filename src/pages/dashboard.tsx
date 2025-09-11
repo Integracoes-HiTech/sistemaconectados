@@ -45,9 +45,21 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const { user, logout, isAdmin, isCoordenador, isColaborador, isVereador, canViewAllUsers, canViewOwnUsers, canViewStats, canGenerateLinks } = useAuth();
 
-  // Usar dados reais do banco com filtros baseados no role
-  const referrerFilter = canViewAllUsers() ? undefined : user?.full_name;
-  const userIdFilter = canViewAllUsers() ? undefined : user?.id;
+  // Lógica de filtro por referrer:
+  // - Admin: vê todos os usuários (sem filtro)
+  // - Outros roles: vê apenas usuários que eles indicaram (filtro por user.full_name)
+  const isAdminUser = isAdmin();
+  const referrerFilter = isAdminUser ? undefined : user?.full_name;
+  const userIdFilter = isAdminUser ? undefined : user?.id;
+  
+  // Debug: verificar se admin está sendo detectado corretamente
+  console.log('🔍 Debug Admin:', {
+    user: user?.username,
+    role: user?.role,
+    isAdmin: isAdminUser,
+    referrerFilter,
+    userIdFilter
+  });
   
   const { users: allUsers, loading: usersLoading } = useUsers(referrerFilter);
   const { stats, loading: statsLoading } = useStats(referrerFilter);
@@ -221,14 +233,14 @@ export default function Dashboard() {
               )}
             </h1>
             <p className="text-muted-foreground mt-1">
-                {isAdmin()
+                {isAdminUser
                 ? "Visão geral completa do sistema - Todos os usuários e dados consolidados"
                 : "Gerencie sua rede eleitoral e acompanhe resultados"
               }
             </p>
           </div>
           
-            {!isAdmin() && (
+            {!isAdminUser && (
           <div className="flex flex-col sm:flex-row gap-3">
             <Button
               onClick={generateLink}
@@ -260,6 +272,7 @@ export default function Dashboard() {
         )}
       </div>
 
+
         {/* Gráficos de Estatísticas */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
           {/* Gráfico de Barras - Usuários por Cidade/Bairro */}
@@ -270,7 +283,10 @@ export default function Dashboard() {
                 Usuários por Localização
               </CardTitle>
               <CardDescription>
-                {canViewAllUsers() ? 'Distribuição por cidade e bairro' : 'Distribuição dos seus usuários por localização'}
+                {isAdminUser 
+                  ? 'Distribuição por cidade e bairro - Todos os usuários' 
+                  : 'Distribuição dos seus usuários por localização'
+                }
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -393,15 +409,7 @@ export default function Dashboard() {
 
           <Card className="shadow-[var(--shadow-card)] border-l-4 border-l-institutional-gold">
             <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Taxa de Engajamento</p>
-                  <p className="text-2xl font-bold text-institutional-gold">{stats.engagement_rate}%</p>
-                </div>
-                <div className="p-3 rounded-full bg-institutional-gold/10">
-                  <MessageSquare className="w-6 h-6 text-institutional-gold" />
-                </div>
-              </div>
+          
             </CardContent>
           </Card>
       </div>
@@ -411,14 +419,14 @@ export default function Dashboard() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-institutional-blue">
               <Users className="w-5 h-5" />
-              {canViewAllUsers() ? 'Todos os Usuários do Sistema' : 'Meus Usuários Cadastrados'}
+              {isAdminUser ? 'Todos os Usuários do Sistema' : 'Meus Usuários Cadastrados'}
             </CardTitle>
             <CardDescription>
-              {canViewAllUsers()
-              ? "Visão consolidada de todos os usuários cadastrados no sistema"
-              : "Gerencie e visualize todos os usuários vinculados ao seu link"
-            }
-          </CardDescription>
+              {isAdminUser
+                ? "Visão consolidada de todos os usuários cadastrados no sistema"
+                : "Gerencie e visualize todos os usuários vinculados ao seu link"
+              }
+            </CardDescription>
         </CardHeader>
         <CardContent>
           {/* Filtros Avançados */}
@@ -634,8 +642,10 @@ export default function Dashboard() {
           <div className="mt-6 p-4 bg-institutional-light rounded-lg">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Total de usuários cadastrados</p>
-                  <p className="text-2xl font-bold text-institutional-blue">{allUsers.length}</p>
+                <p className="text-sm text-muted-foreground">
+                  {isAdminUser ? 'Total de usuários cadastrados' : 'Meus usuários cadastrados'}
+                </p>
+                <p className="text-2xl font-bold text-institutional-blue">{allUsers.length}</p>
               </div>
               <div className="text-right">
                 <p className="text-sm text-muted-foreground">Resultados encontrados</p>
@@ -643,8 +653,8 @@ export default function Dashboard() {
               </div>
               <div className="text-right">
                 <p className="text-sm text-muted-foreground">Taxa de engajamento</p>
-                  <p className="text-2xl font-bold text-green-600">{stats.engagement_rate}%</p>
-                </div>
+                <p className="text-2xl font-bold text-green-600">{stats.engagement_rate}%</p>
+              </div>
             </div>
           </div>
         </CardContent>

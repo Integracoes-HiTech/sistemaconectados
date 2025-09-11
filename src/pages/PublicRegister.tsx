@@ -10,7 +10,8 @@ import { useUsers } from "@/hooks/useUsers";
 import { useUserLinks, UserLink } from "@/hooks/useUserLinks";
 import { useCredentials } from "@/hooks/useCredentials";
 import { emailService, generateCredentials } from "@/services/emailService";
-import { validateInstagramAccount } from "@/services/instagramValidation";
+// COMENTADO: Validação do Instagram (não está pronta)
+// import { validateInstagramAccount } from "@/services/instagramValidation";
 import { AuthUser } from "@/lib/supabase";
 
 export default function PublicRegister() {
@@ -31,8 +32,9 @@ export default function PublicRegister() {
   const [isSuccess, setIsSuccess] = useState(false);
   const [referrerData, setReferrerData] = useState<AuthUser | null>(null);
   const [linkData, setLinkData] = useState<UserLink | null>(null);
-  const [isValidatingInstagram, setIsValidatingInstagram] = useState(false);
-  const [instagramValidationError, setInstagramValidationError] = useState<string | null>(null);
+  // COMENTADO: Estados de validação do Instagram (não estão prontos)
+  // const [isValidatingInstagram, setIsValidatingInstagram] = useState(false);
+  // const [instagramValidationError, setInstagramValidationError] = useState<string | null>(null);
   
   const { addUser, checkUserExists } = useUsers();
   const { getUserByLinkId } = useUserLinks();
@@ -117,6 +119,14 @@ export default function PublicRegister() {
       return { isValid: false, error: 'Nome de usuário do Instagram deve ter pelo menos 3 caracteres' };
     }
 
+    // Validação básica - apenas formato
+    const instagramRegex = /^[a-zA-Z0-9._]+$/;
+    if (!instagramRegex.test(cleanInstagram)) {
+      return { isValid: false, error: 'Nome de usuário do Instagram deve conter apenas letras, números, pontos e underscores' };
+    }
+
+    // COMENTADO: Validação via API do Instagram (não está pronta)
+    /*
     setIsValidatingInstagram(true);
     setInstagramValidationError(null);
 
@@ -133,6 +143,10 @@ export default function PublicRegister() {
     } finally {
       setIsValidatingInstagram(false);
     }
+    */
+
+    // Validação básica passou
+    return { isValid: true, error: null };
   };
 
   const validateRequiredFields = () => {
@@ -174,9 +188,11 @@ export default function PublicRegister() {
     
     if (!formData.instagram.trim()) {
       errors.instagram = 'Instagram é obrigatório';
-    } else if (instagramValidationError) {
-      errors.instagram = instagramValidationError;
     }
+    // COMENTADO: Validação adicional do Instagram (não está pronta)
+    // else if (instagramValidationError) {
+    //   errors.instagram = instagramValidationError;
+    // }
     
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
@@ -201,13 +217,15 @@ export default function PublicRegister() {
       setFormErrors(prev => ({ ...prev, [field]: '' }));
     }
 
-    // Limpa erro de validação do Instagram
-    if (field === 'instagram' && instagramValidationError) {
-      setInstagramValidationError(null);
-    }
+    // COMENTADO: Limpeza de erro de validação do Instagram (não está pronta)
+    // if (field === 'instagram' && instagramValidationError) {
+    //   setInstagramValidationError(null);
+    // }
   };
 
   const handleInstagramBlur = async () => {
+    // COMENTADO: Validação automática do Instagram (não está pronta)
+    /*
     if (formData.instagram.trim()) {
       const validation = await validateInstagram(formData.instagram);
       if (!validation.isValid) {
@@ -215,6 +233,7 @@ export default function PublicRegister() {
         setFormErrors(prev => ({ ...prev, instagram: validation.error }));
       }
     }
+    */
   };
 
   const handleStateChange = (state: string) => {
@@ -260,7 +279,7 @@ export default function PublicRegister() {
     if (linkId) {
       fetchReferrerData();
     }
-  }, [linkId, getUserByLinkId]);
+  }, [linkId]); // Removido getUserByLinkId das dependências
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -601,16 +620,20 @@ export default function PublicRegister() {
               placeholder="Instagram (@seuusuario)"
               value={formData.instagram}
               onChange={(e) => handleInputChange('instagram', e.target.value.replace('@', ''))}
-              onBlur={handleInstagramBlur}
+              // COMENTADO: onBlur para validação automática (não está pronta)
+              // onBlur={handleInstagramBlur}
               className={`pl-12 h-12 bg-gray-800 border-gray-700 text-white placeholder-gray-400 focus:border-institutional-gold focus:ring-institutional-gold rounded-lg ${formErrors.instagram ? 'border-red-500' : ''}`}
               required
-              disabled={isValidatingInstagram}
+              // COMENTADO: disabled durante validação (não está pronta)
+              // disabled={isValidatingInstagram}
             />
+            {/* COMENTADO: Indicador de carregamento da validação (não está pronta)
             {isValidatingInstagram && (
               <div className="absolute right-4 top-1/2 transform -translate-y-1/2">
                 <div className="w-5 h-5 border-2 border-institutional-gold border-t-transparent rounded-full animate-spin" />
               </div>
             )}
+            */}
           </div>
           {formErrors.instagram && (
             <div className="flex items-center gap-1 text-red-400 text-sm">
