@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { Input } from './input';
-import { Check, Plus, MapPin, Building, CheckCircle } from 'lucide-react';
+import { Check, ChevronDown, Search } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
-import { ConfirmationModal } from './confirmation-modal';
 import { useToast } from '../../hooks/use-toast';
 
 interface AutocompleteProps {
@@ -14,17 +14,16 @@ interface AutocompleteProps {
   cityValue?: string; // Para filtrar setores por cidade
   className?: string;
   error?: string;
-  onValidationChange?: (isValid: boolean) => void; // Callback para informar se é válido
-  ref?: React.Ref<any>; // Para permitir acesso externo
+  onValidationChange?: (isValid: boolean) => void;
+  ref?: React.Ref<AutocompleteRef>;
 }
 
 interface Suggestion {
   id: string;
   name: string;
-  count?: number;
 }
 
-// Função para normalizar texto (remove acentos, converte para minúsculo, etc.)
+// Função para normalizar texto (remove acentos, converte para minúsculo)
 const normalizeText = (text: string): string => {
   return text
     .toLowerCase()
@@ -32,84 +31,6 @@ const normalizeText = (text: string): string => {
     .replace(/[\u0300-\u036f]/g, '') // Remove acentos
     .replace(/[^a-z0-9\s]/g, '') // Remove caracteres especiais
     .trim();
-};
-
-// Função para calcular similaridade entre strings (mais flexível)
-const calculateSimilarity = (str1: string, str2: string): number => {
-  const normalized1 = normalizeText(str1);
-  const normalized2 = normalizeText(str2);
-  
-  console.log('🔍 Calculando similaridade:', {
-    original1: str1,
-    original2: str2,
-    normalized1,
-    normalized2
-  });
-  
-  // Se são exatamente iguais após normalização
-  if (normalized1 === normalized2) {
-    console.log('✅ Match exato:', 1);
-    return 1;
-  }
-  
-  // Se uma contém a outra (busca parcial)
-  if (normalized1.includes(normalized2)) {
-    return 0.9; // Alta similaridade se contém
-  }
-  if (normalized2.includes(normalized1)) {
-    return 0.85; // Boa similaridade se é contido
-  }
-  
-  // Busca por palavras individuais
-  const words1 = normalized1.split(' ').filter(w => w.length > 0);
-  const words2 = normalized2.split(' ').filter(w => w.length > 0);
-  
-  let wordMatches = 0;
-  for (const word1 of words1) {
-    for (const word2 of words2) {
-      if (word1.includes(word2) || word2.includes(word1)) {
-        wordMatches++;
-        break;
-      }
-    }
-  }
-  
-  if (wordMatches > 0) {
-    return 0.7 + (wordMatches / Math.max(words1.length, words2.length)) * 0.2;
-  }
-  
-  // Calcular similaridade usando algoritmo de Levenshtein
-  const longer = normalized1.length > normalized2.length ? normalized1 : normalized2;
-  const shorter = normalized1.length > normalized2.length ? normalized2 : normalized1;
-  
-  if (longer.length === 0) return 1;
-  
-  const distance = levenshteinDistance(longer, shorter);
-  const similarity = (longer.length - distance) / longer.length;
-  
-  // Ajustar threshold para ser mais permissivo
-  return similarity > 0.4 ? similarity : 0;
-};
-
-// Algoritmo de distância de Levenshtein
-const levenshteinDistance = (str1: string, str2: string): number => {
-  const matrix = Array(str2.length + 1).fill(null).map(() => Array(str1.length + 1).fill(null));
-  
-  for (let i = 0; i <= str1.length; i++) matrix[0][i] = i;
-  for (let j = 0; j <= str2.length; j++) matrix[j][0] = j;
-  
-  for (let j = 1; j <= str2.length; j++) {
-    for (let i = 1; i <= str1.length; i++) {
-      const indicator = str1[i - 1] === str2[j - 1] ? 0 : 1;
-      matrix[j][i] = Math.min(
-        matrix[j][i - 1] + 1, // deletion
-        matrix[j - 1][i] + 1, // insertion
-        matrix[j - 1][i - 1] + indicator // substitution
-      );
-    }
-  }
-  
-  return matrix[str2.length][str1.length];
 };
 
 export interface AutocompleteRef {
@@ -132,52 +53,39 @@ export const Autocomplete = React.forwardRef<AutocompleteRef, AutocompleteProps>
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  
-  // Debug: rastrear mudanças no isLoading
-  useEffect(() => {
-    console.log('🔄 isLoading mudou para:', isLoading);
-  }, [isLoading]);
   const [selectedIndex, setSelectedIndex] = useState(-1);
-  const [showConfirmation, setShowConfirmation] = useState(false);
-  const [confirmationData, setConfirmationData] = useState<{
-    title: string;
-    message: string;
-    type: 'success' | 'error' | 'info';
-  }>({ title: '', message: '', type: 'success' });
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 });
   const inputRef = useRef<HTMLInputElement>(null);
   const debounceRef = useRef<NodeJS.Timeout>();
 
-  // Debounced search function
-  const debouncedSearch = useCallback(async (query: string) => {
-    if (query.length < 1) { // Reduzido para 1 caractere
+  // Função de busca simplificada
+  const searchSuggestions = useCallback(async (query: string) => {
+    if (query.length < 2) {
       setSuggestions([]);
       return;
     }
 
-    console.log('⏳ setIsLoading(true) - Iniciando busca');
     setIsLoading(true);
     try {
       let suggestions: Suggestion[] = [];
 
       if (type === 'city') {
-        // Buscar diretamente na tabela cities
         const { data, error } = await supabase
           .from('cities')
           .select('id, name')
           .eq('state', 'GO')
           .ilike('name', `%${query}%`)
+          .order('name')
           .limit(10);
 
         if (!error && data) {
-          suggestions = data.map((item: any) => ({
+          suggestions = data.map((item: { id: string; name: string }) => ({
             id: item.id,
-            name: item.name,
-            count: 0
+            name: item.name
           }));
         }
 
       } else if (type === 'sector' && cityValue) {
-        // Buscar diretamente na tabela sectors
         const { data, error } = await supabase
           .from('sectors')
           .select(`
@@ -187,35 +95,22 @@ export const Autocomplete = React.forwardRef<AutocompleteRef, AutocompleteProps>
           `)
           .ilike('name', `%${query}%`)
           .ilike('cities.name', `%${cityValue}%`)
+          .order('name')
           .limit(10);
 
         if (!error && data) {
-          suggestions = data.map((item: any) => ({
+          suggestions = data.map((item: { id: string; name: string }) => ({
             id: item.id,
-            name: item.name,
-            count: 0
+            name: item.name
           }));
         }
       }
 
-      // Ordenar sugestões por similaridade (mais flexível)
-      const sortedSuggestions = suggestions.sort((a, b) => {
-        const similarityA = calculateSimilarity(query, a.name);
-        const similarityB = calculateSimilarity(query, b.name);
-        
-        return similarityB - similarityA;
-      }).filter(suggestion => {
-        const similarity = calculateSimilarity(query, suggestion.name);
-        // Threshold mais baixo para ser mais permissivo
-        return similarity >= 0.2;
-      });
-
-      setSuggestions(sortedSuggestions);
+      setSuggestions(suggestions);
     } catch (error) {
       console.error('Erro ao buscar sugestões:', error);
       setSuggestions([]);
     } finally {
-      console.log('✅ setIsLoading(false) - Finalizando busca');
       setIsLoading(false);
     }
   }, [type, cityValue]);
@@ -230,12 +125,18 @@ export const Autocomplete = React.forwardRef<AutocompleteRef, AutocompleteProps>
       clearTimeout(debounceRef.current);
     }
 
-    // Set new debounce
-    debounceRef.current = setTimeout(() => {
-      debouncedSearch(newValue);
-    }, 250);
+    // Mostrar sugestões quando há texto
+    if (newValue.trim().length >= 2) {
+      updateDropdownPosition();
+      setIsOpen(true);
+      debounceRef.current = setTimeout(() => {
+        searchSuggestions(newValue);
+      }, 300);
+    } else {
+      setIsOpen(false);
+      setSuggestions([]);
+    }
 
-    setIsOpen(true);
     setSelectedIndex(-1);
   };
 
@@ -244,26 +145,43 @@ export const Autocomplete = React.forwardRef<AutocompleteRef, AutocompleteProps>
     onChange(suggestion.name);
     setIsOpen(false);
     setSelectedIndex(-1);
+    
+    // Focar no input após seleção
+    if (inputRef.current) {
+      inputRef.current.focus();
+    }
   };
 
-  // Validar se o valor atual é válido
-  const isValidValue = (currentValue: string): boolean => {
+  // Handle focus - abrir sugestões se há valor
+  const handleFocus = () => {
+    if (value.trim().length >= 2) {
+      updateDropdownPosition();
+      setIsOpen(true);
+      searchSuggestions(value);
+    }
+  };
+
+  // Atualizar posição do dropdown
+  const updateDropdownPosition = useCallback(() => {
+    if (inputRef.current) {
+      const rect = inputRef.current.getBoundingClientRect();
+      setDropdownPosition({
+        top: rect.bottom + 4, // 4px de margem
+        left: rect.left,
+        width: rect.width
+      });
+    }
+  }, []);
+
+  // Verificar se o valor atual é válido
+  const isValidValue = useCallback((currentValue: string): boolean => {
     if (!currentValue.trim()) return false;
     
-    // Verificar se existe uma sugestão exata ou muito similar
-    const exactMatch = suggestions.find(s => 
+    // Verificar se existe uma sugestão exata
+    return suggestions.some(s => 
       normalizeText(s.name) === normalizeText(currentValue)
     );
-    
-    if (exactMatch) return true;
-    
-    // Verificar se há uma sugestão muito similar (>80%)
-    const similarMatch = suggestions.find(s => 
-      calculateSimilarity(currentValue, s.name) > 0.8
-    );
-    
-    return !!similarMatch;
-  };
+  }, [suggestions]);
 
   // Handle keyboard navigation
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -293,50 +211,41 @@ export const Autocomplete = React.forwardRef<AutocompleteRef, AutocompleteProps>
     }
   };
 
-  // Handle create new option
-  const handleCreateNew = async () => {
-    console.log('🚀 FUNÇÃO handleCreateNew EXECUTADA!', { 
-      value: value.trim(), 
-      type, 
-      cityValue,
-      suggestions: suggestions.length,
-      isLoading 
-    });
-    
-    if (type === 'city') {
-      // Para cidade, apenas selecionar (não criar)
-      onChange(value.trim());
-      setIsOpen(false);
-      
-      toast({
-        title: "Cidade selecionada",
-        description: `"${value.trim()}" foi selecionada. Certifique-se de que existe no banco de dados.`,
-        variant: "destructive",
-      });
-    } else if (type === 'sector') {
-      // Para setor, apenas selecionar (será criado no final)
-      onChange(value.trim());
-      setIsOpen(false);
-      
-      toast({
-        title: "Setor selecionado",
-        description: `"${value.trim()}" será criado automaticamente ao finalizar o cadastro.`,
-      });
-    }
-  };
-
   // Close suggestions when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (inputRef.current && !inputRef.current.contains(event.target as Node)) {
+      const target = event.target as Node;
+      const container = inputRef.current?.parentElement;
+      const dropdown = document.querySelector('[data-suggestion-container]');
+      
+      if (container && !container.contains(target) && (!dropdown || !dropdown.contains(target))) {
         setIsOpen(false);
         setSelectedIndex(-1);
       }
     };
 
+    const handleScroll = () => {
+      if (isOpen) {
+        updateDropdownPosition();
+      }
+    };
+
+    const handleResize = () => {
+      if (isOpen) {
+        updateDropdownPosition();
+      }
+    };
+
     document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+    window.addEventListener('scroll', handleScroll, true);
+    window.addEventListener('resize', handleResize);
+    
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      window.removeEventListener('scroll', handleScroll, true);
+      window.removeEventListener('resize', handleResize);
+    };
+  }, [isOpen, updateDropdownPosition]);
 
   // Cleanup debounce on unmount
   useEffect(() => {
@@ -353,7 +262,7 @@ export const Autocomplete = React.forwardRef<AutocompleteRef, AutocompleteProps>
       const isValid = isValidValue(value);
       onValidationChange(isValid);
     }
-  }, [value, suggestions, onValidationChange]);
+  }, [value, suggestions, onValidationChange, isValidValue]);
 
   // Função para validar valor contra o banco de dados
   const validateValueInDatabase = async (): Promise<{ isValid: boolean; error?: string }> => {
@@ -363,7 +272,6 @@ export const Autocomplete = React.forwardRef<AutocompleteRef, AutocompleteProps>
 
     try {
       if (type === 'city') {
-        // Verificar se a cidade existe exatamente no banco
         const { data, error } = await supabase
           .from('cities')
           .select('id, name')
@@ -374,22 +282,13 @@ export const Autocomplete = React.forwardRef<AutocompleteRef, AutocompleteProps>
         if (error || !data) {
           return { 
             isValid: false, 
-            error: `Cidade "${value.trim()}" não encontrada no banco de dados. Selecione uma cidade válida da lista.` 
-          };
-        }
-
-        // Verificar se o nome está exatamente igual (case-insensitive)
-        if (normalizeText(data.name) !== normalizeText(value.trim())) {
-          return { 
-            isValid: false, 
-            error: `Cidade deve ser exatamente "${data.name}". Corrija o nome.` 
+            error: `Cidade "${value.trim()}" não encontrada. Selecione uma cidade válida da lista.` 
           };
         }
 
         return { isValid: true };
 
       } else if (type === 'sector' && cityValue) {
-        // Verificar se o setor existe exatamente no banco para a cidade
         const { data, error } = await supabase
           .from('sectors')
           .select(`
@@ -405,14 +304,6 @@ export const Autocomplete = React.forwardRef<AutocompleteRef, AutocompleteProps>
           return { 
             isValid: false, 
             error: `Setor "${value.trim()}" não encontrado em ${cityValue}. Selecione um setor válido da lista.` 
-          };
-        }
-
-        // Verificar se o nome está exatamente igual (case-insensitive)
-        if (normalizeText(data.name) !== normalizeText(value.trim())) {
-          return { 
-            isValid: false, 
-            error: `Setor deve ser exatamente "${data.name}". Corrija o nome.` 
           };
         }
 
@@ -436,7 +327,7 @@ export const Autocomplete = React.forwardRef<AutocompleteRef, AutocompleteProps>
   }));
 
   return (
-    <div className="relative">
+    <div className="relative" style={{ zIndex: 1000 }}>
       <div className="relative">
         {icon}
         <Input
@@ -446,18 +337,34 @@ export const Autocomplete = React.forwardRef<AutocompleteRef, AutocompleteProps>
           value={value}
           onChange={handleInputChange}
           onKeyDown={handleKeyDown}
-          onFocus={() => setIsOpen(true)}
-          className={`pl-12 h-12 bg-gray-800 border-gray-700 text-white placeholder-gray-400 focus:border-institutional-gold focus:ring-institutional-gold rounded-lg ${
+          onFocus={handleFocus}
+          className={`pl-12 pr-10 h-12 bg-gray-800 border-gray-700 text-white placeholder-gray-400 focus:border-institutional-gold focus:ring-institutional-gold rounded-lg ${
             error ? 'border-red-500' : 
             value.trim() && !isValidValue(value) ? 'border-yellow-500' : ''
           } ${className}`}
           required
         />
+        {/* Ícone de dropdown */}
+        <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
+          <ChevronDown className={`w-5 h-5 text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+        </div>
       </div>
 
-      {/* Suggestions dropdown */}
-      {isOpen && (
-        <div className="absolute z-50 w-full mt-1 bg-gray-800 border border-gray-700 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+      {/* Suggestions dropdown via Portal */}
+      {isOpen && createPortal(
+        <div 
+          className="bg-gray-800 border border-gray-700 rounded-lg shadow-lg max-h-60 overflow-y-auto"
+          data-suggestion-container
+          style={{ 
+            position: 'fixed',
+            top: `${dropdownPosition.top}px`,
+            left: `${dropdownPosition.left}px`,
+            width: `${dropdownPosition.width}px`,
+            zIndex: 99999,
+            pointerEvents: 'auto',
+            maxHeight: '240px'
+          }}
+        >
           {/* Loading state */}
           {isLoading && (
             <div className="px-4 py-3 text-gray-400 text-sm text-center">
@@ -472,124 +379,37 @@ export const Autocomplete = React.forwardRef<AutocompleteRef, AutocompleteProps>
           {!isLoading && suggestions.length > 0 && (
             <>
               {suggestions.map((suggestion, index) => {
-                const similarity = calculateSimilarity(value, suggestion.name);
-                const isExactMatch = similarity === 1;
-                const isVerySimilar = similarity > 0.8;
+                const isExactMatch = normalizeText(suggestion.name) === normalizeText(value);
                 
                 return (
-                  <button
+                  <div
                     key={suggestion.id}
+                    data-suggestion
                     onClick={() => handleSuggestionClick(suggestion)}
-                    className={`w-full px-4 py-3 text-left text-white hover:bg-gray-700 flex items-center justify-between ${
+                    className={`w-full px-4 py-3 text-left text-white hover:bg-gray-700 active:bg-gray-600 flex items-center gap-3 transition-colors cursor-pointer select-none ${
                       index === selectedIndex ? 'bg-gray-700' : ''
-                    } ${isExactMatch ? 'bg-green-900/20' : isVerySimilar ? 'bg-yellow-900/20' : ''}`}
+                    } ${isExactMatch ? 'bg-green-900/20' : ''}`}
                   >
-                    <div className="flex items-center gap-3">
-                      <Check className={`w-4 h-4 ${isExactMatch ? 'text-green-400' : isVerySimilar ? 'text-yellow-400' : 'text-green-500'}`} />
-                      <div className="flex flex-col">
-                        <span className="font-medium">{suggestion.name}</span>
-                        {isVerySimilar && !isExactMatch && (
-                          <span className="text-xs text-yellow-400">
-                            Muito similar ao digitado
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    {suggestion.count && (
-                      <span className="text-xs text-gray-400 bg-gray-600 px-2 py-1 rounded">
-                        {suggestion.count}
-                      </span>
-                    )}
-                  </button>
+                    <Check className={`w-4 h-4 ${isExactMatch ? 'text-green-400' : 'text-gray-500'}`} />
+                    <span className="font-medium">{suggestion.name}</span>
+                  </div>
                 );
               })}
             </>
           )}
 
-          {/* Create new option */}
-          {value.trim() && (
-            <div className="border-t border-gray-700">
-              {(() => {
-                const hasSimilar = suggestions.some(suggestion => 
-                  calculateSimilarity(value.trim(), suggestion.name) > 0.8
-                );
-                
-                const maxSimilarity = Math.max(...suggestions.map(s => 
-                  calculateSimilarity(value.trim(), s.name)
-                ), 0);
-                
-                const canCreate = true; // Temporariamente desabilitar validação para debug
-                const forceEnabled = true; // Forçar botão habilitado para debug
-                
-                console.log('🎨 Renderizando botão Criar:', {
-                  value: value.trim(),
-                  suggestions: suggestions.length,
-                  maxSimilarity,
-                  canCreate,
-                  hasSimilar,
-                  isLoading
-                });
-                
-                return (
-                  <button
-                    onClick={(e) => {
-                      console.log('🔥 CLIQUE DIRETO NO BOTÃO!', e);
-                      e.preventDefault();
-                      e.stopPropagation();
-                      handleCreateNew();
-                    }}
-                    disabled={!forceEnabled}
-                    className={`w-full px-4 py-3 text-left hover:bg-gray-700 flex items-center gap-3 transition-colors ${
-                      hasSimilar ? 'text-yellow-400' : 
-                      canCreate ? 'text-institutional-gold' : 'text-red-400'
-                    } ${isLoading || !canCreate ? 'opacity-50 cursor-not-allowed' : ''}`}
-                    style={{ 
-                      pointerEvents: 'auto', 
-                      cursor: 'pointer',
-                      zIndex: 9999,
-                      position: 'relative'
-                    }}
-                  >
-                    {isLoading ? (
-                      <div className="w-4 h-4 border-2 border-institutional-gold border-t-transparent rounded-full animate-spin" />
-                    ) : (
-                      <Plus className="w-4 h-4" />
-                    )}
-                    <div className="flex flex-col">
-                      <span className="font-medium">
-                        {isLoading ? 'Criando...' : 
-                         !canCreate ? `Não é possível criar "${value.trim()}"` :
-                         `Criar "${value.trim()}"`}
-                      </span>
-                      {hasSimilar && !isLoading && (
-                        <span className="text-xs text-yellow-300">
-                          ⚠️ Existem itens similares acima
-                        </span>
-                      )}
-                      {!canCreate && !hasSimilar && !isLoading && (
-                        <span className="text-xs text-red-300">
-                          ❌ Muito similar aos itens existentes
-                        </span>
-                      )}
-                      {isLoading && (
-                        <span className="text-xs text-gray-400">
-                          Salvando no banco de dados...
-                        </span>
-                      )}
-                    </div>
-                  </button>
-                );
-              })()}
-            </div>
-          )}
-
           {/* No results */}
           {!isLoading && suggestions.length === 0 && value.length >= 2 && (
             <div className="px-4 py-3 text-gray-400 text-sm text-center">
-              Nenhum resultado encontrado
+              <div className="flex items-center justify-center gap-2">
+                <Search className="w-4 h-4" />
+                Nenhum resultado encontrado
+              </div>
             </div>
           )}
-        </div>
+
+        </div>,
+        document.body
       )}
 
       {/* Error message */}
@@ -598,15 +418,6 @@ export const Autocomplete = React.forwardRef<AutocompleteRef, AutocompleteProps>
           <span>{error}</span>
         </div>
       )}
-
-      {/* Confirmation Modal */}
-      <ConfirmationModal
-        isOpen={showConfirmation}
-        onClose={() => setShowConfirmation(false)}
-        title={confirmationData.title}
-        message={confirmationData.message}
-        type={confirmationData.type}
-      />
     </div>
   );
 });

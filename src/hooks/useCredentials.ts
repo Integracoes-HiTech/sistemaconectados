@@ -12,7 +12,7 @@ export const useCredentials = () => {
   const [loading, setLoading] = useState(false)
 
   // Gerar credenciais automáticas baseadas no Instagram e telefone
-  const generateCredentials = (userData: any): Credentials => {
+  const generateCredentials = (userData: { instagram: string; phone: string }): Credentials => {
     // Username baseado no Instagram (sem @)
     const username = userData.instagram.replace('@', '').toLowerCase()
     
@@ -30,7 +30,7 @@ export const useCredentials = () => {
   }
 
   // Criar usuário de autenticação com credenciais geradas
-  const createAuthUser = async (userData: any, credentials: Credentials) => {
+  const createAuthUser = async (userData: { name: string; instagram: string; phone: string; referrer?: string }, credentials: Credentials) => {
     try {
       setLoading(true)
 
@@ -132,10 +132,10 @@ export const useCredentials = () => {
   }
 
   // Processo completo: gerar credenciais únicas e criar usuário
-  const createUserWithCredentials = async (userData: any): Promise<{
+  const createUserWithCredentials = async (userData: { name: string; instagram: string; phone: string; referrer?: string }): Promise<{
     success: true;
     credentials: Credentials;
-    authUser: any;
+    authUser: unknown;
   } | {
     success: false;
     error: string;
@@ -158,7 +158,10 @@ export const useCredentials = () => {
       const authResult = await createAuthUser(userData, finalCredentials)
       
       if (!authResult.success) {
-        return authResult
+        return {
+          success: false,
+          error: authResult.error || 'Erro ao criar usuário de autenticação'
+        }
       }
 
       return { 

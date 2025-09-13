@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Autocomplete, AutocompleteRef } from "@/components/ui/autocomplete";
+import { Autocomplete } from "@/components/ui/autocomplete";
 import { Logo } from "@/components/Logo";
 import { useToast } from "@/hooks/use-toast";
 import { User, Phone, Mail, Instagram, UserPlus, CheckCircle, MapPin, Building, AlertCircle, LogIn, ExternalLink } from "lucide-react";
@@ -31,9 +31,6 @@ export default function PublicRegister() {
   const [linkData, setLinkData] = useState<UserLink | null>(null);
   const hasFetchedData = useRef(false);
   
-  // Refs para validação dos autocompletes
-  const cityAutocompleteRef = useRef<AutocompleteRef>(null);
-  const sectorAutocompleteRef = useRef<AutocompleteRef>(null);
   
   // COMENTADO: Estados de validação do Instagram (não estão prontos)
   // const [isValidatingInstagram, setIsValidatingInstagram] = useState(false);
@@ -143,11 +140,11 @@ export default function PublicRegister() {
     }
     
     if (!formData.city.trim()) {
-      errors.city = 'Cidade é obrigatória';
+      errors.city = 'Cidade é obrigatória - selecione uma cidade válida da lista';
     }
     
     if (!formData.sector.trim()) {
-      errors.sector = 'Setor é obrigatório';
+      errors.sector = 'Setor é obrigatório - selecione um setor válido da lista';
     }
     
     setFormErrors(errors);
@@ -223,87 +220,73 @@ export default function PublicRegister() {
       return;
     }
 
-    // VALIDAÇÃO FINAL: Verificar se cidade está exata no banco
+    // VALIDAÇÃO FINAL: Verificar se cidade e setor estão exatos no banco
     try {
       setIsLoading(true);
       
-      // Validar cidade (deve existir exatamente)
-      if (cityAutocompleteRef.current) {
-        const cityValidation = await cityAutocompleteRef.current.validateValue();
-        if (!cityValidation.isValid) {
-          toast({
-            title: "Erro na cidade",
-            description: cityValidation.error || "Cidade inválida. Selecione uma cidade existente.",
-            variant: "destructive",
-          });
-          setIsLoading(false);
-          return;
-        }
+      // 1. VALIDAR CIDADE - Deve existir exatamente no banco
+      console.log('🔍 Validando cidade:', formData.city);
+      const { data: cityData, error: cityError } = await supabase
+        .from('cities')
+        .select('id, name')
+        .eq('state', 'GO')
+        .ilike('name', formData.city.trim())
+        .single();
+
+      if (cityError || !cityData) {
+        toast({
+          title: "❌ Cidade inválida",
+          description: `A cidade "${formData.city}" não foi encontrada no banco de dados. Por favor, selecione uma cidade válida da lista de sugestões.`,
+          variant: "destructive",
+        });
+        setIsLoading(false);
+        return;
       }
 
-      // Verificar e criar setor se necessário
-      if (formData.sector.trim() && formData.city.trim()) {
-        console.log('🏢 Verificando/criando setor:', formData.sector, 'em', formData.city);
-        
-        // Primeiro, buscar o ID da cidade
-        const { data: cityData, error: cityError } = await supabase
-          .from('cities')
-          .select('id')
-          .eq('name', formData.city.trim())
-          .eq('state', 'GO')
-          .single();
-        
-        if (cityError || !cityData) {
-          throw new Error(`Cidade "${formData.city}" não encontrada`);
-        }
-        
-        // Verificar se o setor existe
-        const { data: existingSector, error: sectorError } = await supabase
-          .from('sectors')
-          .select('id, name')
-          .eq('name', formData.sector.trim())
-          .eq('city_id', cityData.id)
-          .single();
-        
-        if (sectorError && sectorError.code !== 'PGRST116') {
-          // Erro diferente de "não encontrado"
-          throw new Error(`Erro ao verificar setor: ${sectorError.message}`);
-        }
-        
-        if (!existingSector) {
-          // Setor não existe, criar
-          console.log('➕ Criando novo setor:', formData.sector);
-          const { data: newSector, error: createSectorError } = await supabase
-            .from('sectors')
-            .insert({ 
-              name: formData.sector.trim(), 
-              city_id: cityData.id 
-            })
-            .select()
-            .single();
-          
-          if (createSectorError) {
-            if (createSectorError.code === '23505') {
-              // Duplicação - setor já existe, buscar novamente
-              const { data: foundSector } = await supabase
-                .from('sectors')
-                .select('id, name')
-                .eq('name', formData.sector.trim())
-                .eq('city_id', cityData.id)
-                .single();
-              console.log('✅ Setor já existia:', foundSector);
-            } else {
-              throw new Error(`Erro ao criar setor: ${createSectorError.message}`);
-            }
-          } else {
-            console.log('✅ Setor criado:', newSector);
-          }
-        } else {
-          console.log('✅ Setor já existe:', existingSector);
-        }
+      // Verificar se o nome está exatamente igual (case-insensitive)
+      if (cityData.name.toLowerCase() !== formData.city.trim().toLowerCase()) {
+        toast({
+          title: "❌ Nome da cidade incorreto",
+          description: `O nome deve ser exatamente "${cityData.name}". Corrija o nome da cidade.`,
+          variant: "destructive",
+        });
+        setIsLoading(false);
+        return;
       }
 
-      console.log('✅ Validação e criação concluída com sucesso!');
+      console.log('✅ Cidade válida:', cityData.name);
+
+      // 2. VALIDAR SETOR - Deve existir exatamente no banco para a cidade
+      console.log('🔍 Validando setor:', formData.sector, 'em', cityData.name);
+      const { data: existingSector, error: sectorError } = await supabase
+        .from('sectors')
+        .select('id, name')
+        .eq('name', formData.sector.trim())
+        .eq('city_id', cityData.id)
+        .single();
+
+      if (sectorError || !existingSector) {
+        toast({
+          title: "❌ Setor inválido",
+          description: `O setor "${formData.sector}" não foi encontrado em ${cityData.name}. Por favor, selecione um setor válido da lista de sugestões.`,
+          variant: "destructive",
+        });
+        setIsLoading(false);
+        return;
+      }
+
+      // Verificar se o nome está exatamente igual (case-insensitive)
+      if (existingSector.name.toLowerCase() !== formData.sector.trim().toLowerCase()) {
+        toast({
+          title: "❌ Nome do setor incorreto",
+          description: `O nome deve ser exatamente "${existingSector.name}". Corrija o nome do setor.`,
+          variant: "destructive",
+        });
+        setIsLoading(false);
+        return;
+      }
+
+      console.log('✅ Setor válido:', existingSector.name);
 
     } catch (error) {
       console.error('💥 Erro na validação/criação:', error);
@@ -475,7 +458,7 @@ export default function PublicRegister() {
       </div>
 
       {/* Formulário de Cadastro */}
-      <div className="w-full max-w-md space-y-6">
+      <div className="w-full max-w-md space-y-6" style={{ position: 'relative', zIndex: 1 }}>
         {/* Campo Nome */}
         <div className="space-y-1">
           <div className="relative">
@@ -498,9 +481,8 @@ export default function PublicRegister() {
         </div>
 
         {/* Campo Cidade - AUTCOMPLETE */}
-        <div className="space-y-1">
+        <div className="space-y-1" style={{ position: 'relative', zIndex: 1 }}>
           <Autocomplete
-            ref={cityAutocompleteRef}
             value={formData.city}
             onChange={(value) => handleInputChange('city', value)}
             placeholder="Digite a cidade..."
@@ -511,9 +493,8 @@ export default function PublicRegister() {
         </div>
 
         {/* Campo Setor - AUTCOMPLETE */}
-        <div className="space-y-1">
+        <div className="space-y-1" style={{ position: 'relative', zIndex: 1 }}>
           <Autocomplete
-            ref={sectorAutocompleteRef}
             value={formData.sector}
             onChange={(value) => handleInputChange('sector', value)}
             placeholder="Digite o setor..."
