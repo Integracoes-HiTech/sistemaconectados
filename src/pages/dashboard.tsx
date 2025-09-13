@@ -238,23 +238,23 @@ export default function Dashboard() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-institutional-blue">
                 <MapPin className="w-5 h-5" />
-                Usuários por Localização
+                  Setor por cidade
               </CardTitle>
               <CardDescription>
                 {isAdminUser 
-                  ? 'Distribuição por cidade e setor - Todos os usuários' 
-                  : 'Distribuição dos seus usuários por localização'
+                  ? 'Distribuição por setor - Todos os usuários' 
+                  : ''
                 }
               </CardDescription>
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={Object.entries(reportData.usersByLocation).map(([location, count]) => ({ location, count }))}>
+                <BarChart data={Object.entries(reportData.usersByLocation).map(([location, count]) => ({ location, quantidade: count }))}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="location" angle={-45} textAnchor="end" height={80} />
                   <YAxis />
                   <Tooltip />
-                  <Bar dataKey="count" fill="#D4AF37" />
+                  <Bar dataKey="quantidade" fill="#D4AF37" />
                 </BarChart>
               </ResponsiveContainer>
             </CardContent>
@@ -268,7 +268,7 @@ export default function Dashboard() {
                 Status dos Usuários
               </CardTitle>
               <CardDescription>
-                Distribuição por status de cadastro
+                Distribuição por atividade no sistema
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -302,20 +302,31 @@ export default function Dashboard() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-institutional-blue">
                 <MapPin className="w-5 h-5" />
-                Setores por Cidade
+                 Pessoas por Setor
               </CardTitle>
               <CardDescription>
-                Quantidade de setores distintos cadastrados em cada cidade
+                Quantidade de Pessoas cadastrados em cada setor
               </CardDescription>
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={Object.entries(reportData.sectorsByCity).map(([city, count]) => ({ city, count }))}>
+                <BarChart data={Object.entries(reportData.usersByLocation).map(([location, count]) => {
+                  const [city, sector] = location.split(' - ');
+                  return { setor: sector, quantidade: count };
+                }).reduce((acc, item) => {
+                  const existing = acc.find(x => x.setor === item.setor);
+                  if (existing) {
+                    existing.quantidade += item.quantidade;
+                  } else {
+                    acc.push(item);
+                  }
+                  return acc;
+                }, [] as { setor: string; quantidade: number }[])}>
                   <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="city" angle={-45} textAnchor="end" height={80} />
+                  <XAxis dataKey="setor" angle={-45} textAnchor="end" height={80} />
                   <YAxis />
                   <Tooltip />
-                  <Bar dataKey="count" fill="#8B5CF6" />
+                  <Bar dataKey="quantidade" fill="#8B5CF6" />
                 </BarChart>
               </ResponsiveContainer>
             </CardContent>
@@ -334,12 +345,12 @@ export default function Dashboard() {
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={Object.entries(reportData.usersByCity).map(([city, count]) => ({ city, count }))}>
+                <BarChart data={Object.entries(reportData.usersByCity).map(([city, count]) => ({ city, quantidade: count }))}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="city" angle={-45} textAnchor="end" height={80} />
                   <YAxis />
                   <Tooltip />
-                  <Bar dataKey="count" fill="#10B981" />
+                  <Bar dataKey="quantidade" fill="#10B981" />
                 </BarChart>
               </ResponsiveContainer>
             </CardContent>
@@ -366,7 +377,7 @@ export default function Dashboard() {
                   <XAxis dataKey="date" />
                   <YAxis />
                   <Tooltip />
-                  <Bar dataKey="count" fill="#10B981" />
+                  <Bar dataKey="quantidade" fill="#10B981" />
                 </BarChart>
               </ResponsiveContainer>
             </CardContent>
@@ -377,7 +388,7 @@ export default function Dashboard() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-institutional-blue">
                 <Share2 className="w-5 h-5" />
-                Link com Mais Registros
+                Pessoas com mais cadastros
               </CardTitle>
               <CardDescription>
                 {isAdminUser 
@@ -439,7 +450,7 @@ export default function Dashboard() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-institutional-blue">
                 <TrendingUp className="w-5 h-5" />
-                Taxa de Engajamento
+                Taxa de Uso do sistema
               </CardTitle>
               <CardDescription>
                 {isAdminUser 
@@ -495,7 +506,7 @@ export default function Dashboard() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Usuários Ativos</p>
+                  <p className="text-sm font-medium text-muted-foreground">Usuários Ativos no Sistema</p>
                   <p className="text-2xl font-bold text-green-600">{stats.active_users}</p>
                 </div>
                 <div className="p-3 rounded-full bg-green-50">
@@ -578,8 +589,8 @@ export default function Dashboard() {
                 className="w-full pl-10 pr-4 py-2 border border-institutional-light rounded-md focus:border-institutional-gold focus:ring-institutional-gold bg-white"
               >
                 <option value="">Todos os Status</option>
-                <option value="Ativo">Ativo</option>
-                <option value="Inativo">Inativo</option>
+                <option value="Ativo">Ativo no Sistema</option>
+                <option value="Inativo">Inativo no Sistema</option>
               </select>
             </div>
           </div>
@@ -652,8 +663,8 @@ export default function Dashboard() {
                             ? 'bg-green-100 text-green-800' 
                             : 'bg-red-100 text-red-800'
                         }`}>
-                        {user.status}
-                      </span>
+                          {user.status === 'Ativo' ? 'Ativo no Sistema' : 'Inativo no Sistema'}
+                        </span>
                     </td>
                   </tr>
                 ))}

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Autocomplete } from "@/components/ui/autocomplete";
@@ -13,9 +13,12 @@ import { emailService, generateCredentials } from "@/services/emailService";
 // COMENTADO: Validação do Instagram (não está pronta)
 // import { validateInstagramAccount } from "@/services/instagramValidation";
 import { AuthUser, supabase } from "@/lib/supabase";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function PublicRegister() {
   const { linkId } = useParams();
+  const navigate = useNavigate();
+  const { login } = useAuth();
   const [formData, setFormData] = useState({
     name: "",
     phone: "",
@@ -371,6 +374,37 @@ export default function PublicRegister() {
     });
   };
 
+  // Login automático quando a tela de sucesso aparecer
+  useEffect(() => {
+    if (isSuccess) {
+      const autoLogin = async () => {
+        try {
+          const username = formData.instagram.replace('@', '');
+          const password = `${formData.instagram.replace('@', '')}${formData.phone.slice(-4)}`;
+          
+          const result = await login(username, password);
+          
+          if (result.success) {
+            toast({
+              title: "Login automático realizado!",
+              description: "Redirecionando para o dashboard...",
+            });
+            
+            // Redirecionar para o dashboard após 2 segundos
+            setTimeout(() => {
+              navigate("/dashboard");
+            }, 2000);
+          }
+        } catch (error) {
+          console.log("Login automático falhou, usuário pode fazer login manual");
+        }
+      };
+      
+      // Executar login automático após 1 segundo
+      setTimeout(autoLogin, 1000);
+    }
+  }, [isSuccess, formData.instagram, formData.phone, login, navigate, toast]);
+
   if (isSuccess) {
     return (
       <div className="min-h-screen bg-institutional-blue flex flex-col items-center justify-center p-4">
@@ -402,17 +436,48 @@ export default function PublicRegister() {
               </p>
             </div>
             <p className="text-sm text-institutional-blue bg-institutional-light p-3 rounded-lg mb-4">
-              <strong>Como acessar:</strong> Use seu Instagram ({formData.instagram.replace('@', '')}) como usuário e a senha gerada acima para fazer login no sistema.
+              <strong>Login automático:</strong> Você será redirecionado automaticamente para o dashboard em alguns segundos. Se isso não acontecer, clique no botão "Fazer Login Automático" abaixo.
             </p>
             
-            {/* Botão para Fazer Login */}
+            {/* Botão para Entrar no Sistema */}
             <Button
-              onClick={handleOpenLogin}
+              onClick={async () => {
+                try {
+                  const username = formData.instagram.replace('@', '');
+                  const password = `${formData.instagram.replace('@', '')}${formData.phone.slice(-4)}`;
+                  
+                  const result = await login(username, password);
+                  
+                  if (result.success) {
+                    toast({
+                      title: "Login realizado com sucesso!",
+                      description: "Redirecionando para o dashboard...",
+                    });
+                    
+                    // Redirecionar para o dashboard após 1 segundo
+                    setTimeout(() => {
+                      navigate("/dashboard");
+                    }, 1000);
+                  } else {
+                    toast({
+                      title: "Erro no login automático",
+                      description: "Por favor, faça login manualmente.",
+                      variant: "destructive",
+                    });
+                  }
+                } catch (error) {
+                  toast({
+                    title: "Erro no login automático",
+                    description: "Por favor, faça login manualmente.",
+                    variant: "destructive",
+                  });
+                }
+              }}
               className="w-full h-12 bg-institutional-gold hover:bg-institutional-gold/90 text-institutional-blue font-semibold text-lg rounded-lg transition-all duration-200"
             >
               <div className="flex items-center gap-2">
                 <LogIn className="w-5 h-5" />
-                Fazer Login
+                Fazer Login Automático
               </div>
             </Button>
           </div>

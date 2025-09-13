@@ -1,10 +1,21 @@
 // hooks/useReports.ts
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
+
+interface User {
+  id: string
+  name: string
+  city: string
+  sector: string
+  status: string
+  registration_date: string
+  created_at: string
+  referrer?: string
+}
 
 export interface ReportData {
   usersByLocation: Record<string, number>
-  registrationsByDay: Array<{ date: string; count: number }>
+  registrationsByDay: Array<{ date: string; quantidade: number }>
   usersByStatus: Array<{ name: string; value: number; color: string }>
   recentActivity: Array<{
     id: string
@@ -28,21 +39,7 @@ export const useReports = (referrer?: string) => {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    // Limpar estado anterior antes de buscar novos dados
-    setReportData({
-      usersByLocation: {},
-      registrationsByDay: [],
-      usersByStatus: [],
-      recentActivity: [],
-      sectorsByCity: {},
-      usersByCity: {}
-    })
-    setError(null)
-    fetchReportData()
-  }, [referrer])
-
-  const fetchReportData = async () => {
+  const fetchReportData = useCallback(async () => {
     try {
       setLoading(true)
       setError(null)
@@ -79,9 +76,24 @@ export const useReports = (referrer?: string) => {
     } finally {
       setLoading(false)
     }
-  }
+  }, [referrer])
 
-  const calculateUsersByLocation = (users: any[]) => {
+  useEffect(() => {
+    // Limpar estado anterior antes de buscar novos dados
+    setReportData({
+      usersByLocation: {},
+      registrationsByDay: [],
+      usersByStatus: [],
+      recentActivity: [],
+      sectorsByCity: {},
+      usersByCity: {}
+    })
+    setError(null)
+    fetchReportData()
+  }, [fetchReportData])
+
+
+  const calculateUsersByLocation = (users: User[]) => {
     return users.reduce((acc, user) => {
       const location = `${user.city} - ${user.sector}`
       acc[location] = (acc[location] || 0) + 1
@@ -89,7 +101,7 @@ export const useReports = (referrer?: string) => {
     }, {} as Record<string, number>)
   }
 
-  const calculateSectorsByCity = (users: any[]) => {
+  const calculateSectorsByCity = (users: User[]) => {
     const sectorsByCity = users.reduce((acc, user) => {
       if (!acc[user.city]) {
         acc[user.city] = new Set()
@@ -106,14 +118,14 @@ export const useReports = (referrer?: string) => {
     return result
   }
 
-  const calculateUsersByCity = (users: any[]) => {
+  const calculateUsersByCity = (users: User[]) => {
     return users.reduce((acc, user) => {
       acc[user.city] = (acc[user.city] || 0) + 1
       return acc
     }, {} as Record<string, number>)
   }
 
-  const calculateRegistrationsByDay = (users: any[]) => {
+  const calculateRegistrationsByDay = (users: User[]) => {
     const registrationsByDay = []
     
     // Últimos 7 dias
@@ -122,27 +134,27 @@ export const useReports = (referrer?: string) => {
       date.setDate(date.getDate() - i)
       const dateStr = date.toISOString().split('T')[0]
       
-      const count = users.filter(user => user.registration_date === dateStr).length
+      const quantidade = users.filter(user => user.registration_date === dateStr).length
       registrationsByDay.push({
         date: date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }),
-        count
+        quantidade
       })
     }
     
     return registrationsByDay
   }
 
-  const calculateUsersByStatus = (users: any[]) => {
+  const calculateUsersByStatus = (users: User[]) => {
     const activeUsers = users.filter(user => user.status === 'Ativo').length
     const inactiveUsers = users.filter(user => user.status === 'Inativo').length
     
     return [
-      { name: "Ativos", value: activeUsers, color: "#10B981" },
-      { name: "Inativos", value: inactiveUsers, color: "#EF4444" }
+      { name: "Ativos no Sistema", value: activeUsers, color: "#10B981" },
+      { name: "Inativos no Sistema", value: inactiveUsers, color: "#EF4444" }
     ]
   }
 
-  const calculateRecentActivity = (users: any[]) => {
+  const calculateRecentActivity = (users: User[]) => {
     return users
       .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
       .slice(0, 10)

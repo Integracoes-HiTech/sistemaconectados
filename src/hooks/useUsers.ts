@@ -11,13 +11,28 @@ export const useUsers = (referrer?: string) => {
     // Limpar estado anterior antes de buscar novos dados
     setUsers([])
     setError(null)
-    fetchUsers()
+    setLoading(true)
+    
+    // Adicionar delay para evitar race conditions
+    const timeoutId = setTimeout(() => {
+      fetchUsers()
+    }, 100)
+    
+    return () => clearTimeout(timeoutId)
   }, [referrer])
 
   const fetchUsers = async () => {
     try {
       setLoading(true)
       setError(null)
+
+      // Validar referrer antes de fazer a query
+      if (referrer && typeof referrer !== 'string') {
+        console.warn('🚨 Referrer inválido:', referrer)
+        setUsers([])
+        setLoading(false)
+        return
+      }
 
       let query = supabase
         .from('users')
@@ -26,15 +41,30 @@ export const useUsers = (referrer?: string) => {
 
       if (referrer) {
         query = query.eq('referrer', referrer)
+        console.log('🔍 Buscando usuários para referrer:', referrer)
+      } else {
+        console.log('🔍 Buscando todos os usuários (admin)')
       }
 
       const { data, error } = await query
 
       if (error) throw error
 
-      setUsers(data || [])
+      // Validar dados recebidos
+      const validUsers = (data || []).filter(user => {
+        if (!user.id || !user.name) {
+          console.warn('🚨 Usuário com dados inválidos encontrado:', user)
+          return false
+        }
+        return true
+      })
+
+      console.log(`✅ ${validUsers.length} usuários válidos carregados`)
+      setUsers(validUsers)
     } catch (err) {
+      console.error('🚨 Erro ao carregar usuários:', err)
       setError(err instanceof Error ? err.message : 'Erro ao carregar usuários')
+      setUsers([])
     } finally {
       setLoading(false)
     }

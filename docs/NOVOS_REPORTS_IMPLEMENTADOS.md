@@ -93,7 +93,7 @@ Implementei 2 novos reports baseados no `engagement_rate` do `user_statistics` e
               </div>
               <div className="bg-institutional-light p-4 rounded-lg">
                 <div className="text-sm font-medium text-institutional-blue mb-1">
-                  Link de: {topLink.referrer_name}
+                   {topLink.referrer_name}
                 </div>
                 <div className="text-xs text-muted-foreground">
                   {topLink.click_count} cliques • Criado em {new Date(topLink.created_at).toLocaleDateString('pt-BR')}

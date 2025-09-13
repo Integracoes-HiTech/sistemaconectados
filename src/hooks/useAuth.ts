@@ -9,17 +9,62 @@ export const useAuth = () => {
   const { toast } = useToast()
 
   useEffect(() => {
-    // Verificar se há usuário logado no localStorage
+    // Verificar se há usuário logado no localStorage com validação
     const loggedUser = localStorage.getItem('loggedUser')
     if (loggedUser) {
       try {
-        setUser(JSON.parse(loggedUser))
+        const userData = JSON.parse(loggedUser)
+        
+        // Validar estrutura dos dados
+        if (!userData.id || !userData.username || !userData.role) {
+          console.warn('🚨 Dados de usuário inválidos no localStorage, removendo...')
+          localStorage.removeItem('loggedUser')
+          setUser(null)
+        } else {
+          // Validar se o usuário ainda existe no banco
+          validateUserSession(userData)
+        }
       } catch (error) {
+        console.warn('🚨 Erro ao parsear dados do localStorage, removendo...', error)
         localStorage.removeItem('loggedUser')
+        setUser(null)
       }
     }
     setLoading(false)
   }, [])
+
+  // Função para validar se a sessão ainda é válida
+  const validateUserSession = async (userData: AuthUser) => {
+    try {
+      const { data, error } = await supabase
+        .from('auth_users')
+        .select('id, username, role, is_active')
+        .eq('id', userData.id)
+        .eq('username', userData.username)
+        .single()
+
+      if (error || !data || !data.is_active) {
+        console.warn('🚨 Sessão inválida, fazendo logout...')
+        localStorage.removeItem('loggedUser')
+        setUser(null)
+        return
+      }
+
+      // Atualizar dados do usuário se necessário
+      if (data.role !== userData.role) {
+        console.log('🔄 Role atualizado, sincronizando...')
+        const updatedUser = { ...userData, role: data.role }
+        setUser(updatedUser)
+        localStorage.setItem('loggedUser', JSON.stringify(updatedUser))
+      } else {
+        setUser(userData)
+      }
+    } catch (error) {
+      console.warn('🚨 Erro ao validar sessão, fazendo logout...', error)
+      localStorage.removeItem('loggedUser')
+      setUser(null)
+    }
+  }
 
   const login = async (username: string, password: string) => {
     try {
