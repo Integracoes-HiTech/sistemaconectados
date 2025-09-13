@@ -374,36 +374,6 @@ export default function PublicRegister() {
     });
   };
 
-  // Login automático quando a tela de sucesso aparecer
-  useEffect(() => {
-    if (isSuccess) {
-      const autoLogin = async () => {
-        try {
-          const username = formData.instagram.replace('@', '');
-          const password = `${formData.instagram.replace('@', '')}${formData.phone.slice(-4)}`;
-          
-          const result = await login(username, password);
-          
-          if (result.success) {
-            toast({
-              title: "Login automático realizado!",
-              description: "Redirecionando para o dashboard...",
-            });
-            
-            // Redirecionar para o dashboard após 2 segundos
-            setTimeout(() => {
-              navigate("/dashboard");
-            }, 2000);
-          }
-        } catch (error) {
-          console.log("Login automático falhou, usuário pode fazer login manual");
-        }
-      };
-      
-      // Executar login automático após 1 segundo
-      setTimeout(autoLogin, 1000);
-    }
-  }, [isSuccess, formData.instagram, formData.phone, login, navigate, toast]);
 
   if (isSuccess) {
     return (
@@ -436,7 +406,7 @@ export default function PublicRegister() {
               </p>
             </div>
             <p className="text-sm text-institutional-blue bg-institutional-light p-3 rounded-lg mb-4">
-              <strong>Login automático:</strong> Você será redirecionado automaticamente para o dashboard em alguns segundos. Se isso não acontecer, clique no botão "Fazer Login Automático" abaixo.
+              <strong>Como acessar:</strong> Use seu Instagram ({formData.instagram.replace('@', '')}) como usuário e a senha gerada acima para fazer login no sistema. Clique no botão abaixo para entrar.
             </p>
             
             {/* Botão para Entrar no Sistema */}
@@ -477,7 +447,7 @@ export default function PublicRegister() {
             >
               <div className="flex items-center gap-2">
                 <LogIn className="w-5 h-5" />
-                Fazer Login Automático
+                Fazer Login
               </div>
             </Button>
           </div>
