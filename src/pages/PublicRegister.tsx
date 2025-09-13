@@ -458,7 +458,7 @@ export default function PublicRegister() {
       </div>
 
       {/* Formulário de Cadastro */}
-      <div className="w-full max-w-md space-y-6" style={{ position: 'relative', zIndex: 1 }}>
+      <div className="w-full max-w-md space-y-6">
         {/* Campo Nome */}
         <div className="space-y-1">
           <div className="relative">
@@ -481,7 +481,7 @@ export default function PublicRegister() {
         </div>
 
         {/* Campo Cidade - AUTCOMPLETE */}
-        <div className="space-y-1" style={{ position: 'relative', zIndex: 1 }}>
+        <div className="space-y-1">
           <Autocomplete
             value={formData.city}
             onChange={(value) => handleInputChange('city', value)}
@@ -493,7 +493,7 @@ export default function PublicRegister() {
         </div>
 
         {/* Campo Setor - AUTCOMPLETE */}
-        <div className="space-y-1" style={{ position: 'relative', zIndex: 1 }}>
+        <div className="space-y-1">
           <Autocomplete
             value={formData.sector}
             onChange={(value) => handleInputChange('sector', value)}

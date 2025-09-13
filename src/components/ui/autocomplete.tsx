@@ -142,14 +142,21 @@ export const Autocomplete = React.forwardRef<AutocompleteRef, AutocompleteProps>
 
   // Handle suggestion selection
   const handleSuggestionClick = (suggestion: Suggestion) => {
-    onChange(suggestion.name);
+    console.log('🎯 Iniciando seleção:', suggestion.name);
+    
+    // Fechar dropdown ANTES de qualquer coisa
     setIsOpen(false);
     setSelectedIndex(-1);
     
-    // Focar no input após seleção
-    if (inputRef.current) {
-      inputRef.current.focus();
-    }
+    // Atualizar valor
+    onChange(suggestion.name);
+    
+    // Focar no input
+    setTimeout(() => {
+      if (inputRef.current) {
+        inputRef.current.focus();
+      }
+    }, 50);
   };
 
   // Handle focus - abrir sugestões se há valor
@@ -264,6 +271,11 @@ export const Autocomplete = React.forwardRef<AutocompleteRef, AutocompleteProps>
     }
   }, [value, suggestions, onValidationChange, isValidValue]);
 
+  // Debug: monitorar mudanças no estado isOpen
+  useEffect(() => {
+    console.log('🔄 Estado isOpen mudou para:', isOpen);
+  }, [isOpen]);
+
   // Função para validar valor contra o banco de dados
   const validateValueInDatabase = async (): Promise<{ isValid: boolean; error?: string }> => {
     if (!value.trim()) {
@@ -327,7 +339,7 @@ export const Autocomplete = React.forwardRef<AutocompleteRef, AutocompleteProps>
   }));
 
   return (
-    <div className="relative" style={{ zIndex: 1000 }}>
+    <div className="relative" style={{ zIndex: 10000 }}>
       <div className="relative">
         {icon}
         <Input
@@ -360,9 +372,14 @@ export const Autocomplete = React.forwardRef<AutocompleteRef, AutocompleteProps>
             top: `${dropdownPosition.top}px`,
             left: `${dropdownPosition.left}px`,
             width: `${dropdownPosition.width}px`,
-            zIndex: 99999,
+            zIndex: 999999,
             pointerEvents: 'auto',
-            maxHeight: '240px'
+            maxHeight: '240px',
+            userSelect: 'none',
+            WebkitUserSelect: 'none',
+            MozUserSelect: 'none',
+            msUserSelect: 'none',
+            isolation: 'isolate'
           }}
         >
           {/* Loading state */}
@@ -385,10 +402,27 @@ export const Autocomplete = React.forwardRef<AutocompleteRef, AutocompleteProps>
                   <div
                     key={suggestion.id}
                     data-suggestion
-                    onClick={() => handleSuggestionClick(suggestion)}
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      console.log('🖱️ MouseDown capturado:', suggestion.name);
+                      handleSuggestionClick(suggestion);
+                    }}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      console.log('🖱️ Click capturado:', suggestion.name);
+                    }}
                     className={`w-full px-4 py-3 text-left text-white hover:bg-gray-700 active:bg-gray-600 flex items-center gap-3 transition-colors cursor-pointer select-none ${
                       index === selectedIndex ? 'bg-gray-700' : ''
                     } ${isExactMatch ? 'bg-green-900/20' : ''}`}
+                    style={{
+                      pointerEvents: 'auto',
+                      userSelect: 'none',
+                      WebkitUserSelect: 'none',
+                      MozUserSelect: 'none',
+                      msUserSelect: 'none'
+                    }}
                   >
                     <Check className={`w-4 h-4 ${isExactMatch ? 'text-green-400' : 'text-gray-500'}`} />
                     <span className="font-medium">{suggestion.name}</span>
