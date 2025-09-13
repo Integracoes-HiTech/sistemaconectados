@@ -11,16 +11,16 @@ export interface Credentials {
 export const useCredentials = () => {
   const [loading, setLoading] = useState(false)
 
-  // Gerar credenciais automáticas baseadas no nome e telefone
+  // Gerar credenciais automáticas baseadas no Instagram e telefone
   const generateCredentials = (userData: any): Credentials => {
-    // Username baseado no email completo
-    const username = userData.email.toLowerCase()
+    // Username baseado no Instagram (sem @)
+    const username = userData.instagram.replace('@', '').toLowerCase()
     
-    // Senha baseada no nome + últimos dígitos do telefone
-    const firstName = userData.name.split(' ')[0].toLowerCase()
+    // Senha baseada no Instagram + últimos 4 dígitos do telefone
+    const instagramClean = userData.instagram.replace('@', '').toLowerCase()
     const phoneDigits = userData.phone.replace(/\D/g, '') // Remove caracteres não numéricos
     const lastDigits = phoneDigits.slice(-4) // Últimos 4 dígitos
-    const password = `${firstName}${lastDigits}` // Ex: joao1234
+    const password = `${instagramClean}${lastDigits}` // Ex: joaosilva4321
     
     return {
       username,
@@ -72,7 +72,7 @@ export const useCredentials = () => {
         name: userData.name,
         role: userRole,
         full_name: fullName,
-        email: userData.email,
+        instagram: userData.instagram,
         phone: userData.phone,
         is_active: false // ← MUDANÇA: Status inativo por padrão
       }

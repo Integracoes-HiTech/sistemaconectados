@@ -12,6 +12,8 @@ export interface ReportData {
     action: string
     date: string
   }>
+  sectorsByCity: Record<string, number>
+  usersByCity: Record<string, number>
 }
 
 export const useReports = (referrer?: string) => {
@@ -19,7 +21,9 @@ export const useReports = (referrer?: string) => {
     usersByLocation: {},
     registrationsByDay: [],
     usersByStatus: [],
-    recentActivity: []
+    recentActivity: [],
+    sectorsByCity: {},
+    usersByCity: {}
   })
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -30,7 +34,9 @@ export const useReports = (referrer?: string) => {
       usersByLocation: {},
       registrationsByDay: [],
       usersByStatus: [],
-      recentActivity: []
+      recentActivity: [],
+      sectorsByCity: {},
+      usersByCity: {}
     })
     setError(null)
     fetchReportData()
@@ -57,12 +63,16 @@ export const useReports = (referrer?: string) => {
       const registrationsByDay = calculateRegistrationsByDay(users || [])
       const usersByStatus = calculateUsersByStatus(users || [])
       const recentActivity = calculateRecentActivity(users || [])
+      const sectorsByCity = calculateSectorsByCity(users || [])
+      const usersByCity = calculateUsersByCity(users || [])
 
       setReportData({
         usersByLocation,
         registrationsByDay,
         usersByStatus,
-        recentActivity
+        recentActivity,
+        sectorsByCity,
+        usersByCity
       })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erro ao carregar dados dos relatórios')
@@ -73,8 +83,32 @@ export const useReports = (referrer?: string) => {
 
   const calculateUsersByLocation = (users: any[]) => {
     return users.reduce((acc, user) => {
-      const location = `${user.city} - ${user.neighborhood}`
+      const location = `${user.city} - ${user.sector}`
       acc[location] = (acc[location] || 0) + 1
+      return acc
+    }, {} as Record<string, number>)
+  }
+
+  const calculateSectorsByCity = (users: any[]) => {
+    const sectorsByCity = users.reduce((acc, user) => {
+      if (!acc[user.city]) {
+        acc[user.city] = new Set()
+      }
+      acc[user.city].add(user.sector)
+      return acc
+    }, {} as Record<string, Set<string>>)
+
+    // Converter Sets para números
+    const result: Record<string, number> = {}
+    for (const city in sectorsByCity) {
+      result[city] = sectorsByCity[city].size
+    }
+    return result
+  }
+
+  const calculateUsersByCity = (users: any[]) => {
+    return users.reduce((acc, user) => {
+      acc[user.city] = (acc[user.city] || 0) + 1
       return acc
     }, {} as Record<string, number>)
   }

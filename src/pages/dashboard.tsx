@@ -22,7 +22,9 @@ import {
   User as UserIcon,
   MapPin,
   Building,
-  Home
+  Home,
+  CalendarDays,
+  UserCheck
 } from "lucide-react";
 import { useUsers } from "@/hooks/useUsers";
 import { useStats } from "@/hooks/useStats";
@@ -33,13 +35,8 @@ import { useUserLinks } from "@/hooks/useUserLinks";
 export default function Dashboard() {
   const [userLink, setUserLink] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
-  const [filterInstagram, setFilterInstagram] = useState("");
-  const [filterEmail, setFilterEmail] = useState("");
-  const [filterPhone, setFilterPhone] = useState("");
-  const [filterAddress, setFilterAddress] = useState("");
-  const [filterCity, setFilterCity] = useState("");
-  const [filterNeighborhood, setFilterNeighborhood] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
+  const [filterDate, setFilterDate] = useState("");
   const [filterReferrer, setFilterReferrer] = useState("");
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -115,12 +112,13 @@ export default function Dashboard() {
       const newLink = `${window.location.origin}/cadastro/${result.data.link_id}`;
       setUserLink(newLink);
       
-      toast({
-        title: "Link gerado com sucesso!",
-        description: `Link específico para ${user.name} copiado para a área de transferência.`,
-      });
-      
+      // Copiar para área de transferência
       navigator.clipboard.writeText(newLink);
+      
+      toast({
+        title: "Link gerado e copiado!",
+        description: `Link específico para ${user.name} foi copiado para a área de transferência.`,
+      });
     } else {
       toast({
         title: "Erro ao gerar link",
@@ -130,37 +128,24 @@ export default function Dashboard() {
     }
   };
 
-  const copyLink = () => {
-    navigator.clipboard.writeText(userLink);
-    toast({
-      title: "Link copiado!",
-      description: "O link foi copiado para a área de transferência.",
-    });
-  };
 
-  // Filtrar usuários baseado na pesquisa e filtros
+  // Filtrar usuários baseado na pesquisa e filtros específicos
   const filteredUsers = allUsers.filter(userItem => {
     const matchesSearch = searchTerm === "" || 
       userItem.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      userItem.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
       userItem.phone.includes(searchTerm) ||
       userItem.instagram.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      userItem.address.toLowerCase().includes(searchTerm.toLowerCase()) ||
       userItem.city.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      userItem.neighborhood.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      userItem.state.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      userItem.sector.toLowerCase().includes(searchTerm.toLowerCase()) ||
       userItem.referrer.toLowerCase().includes(searchTerm.toLowerCase());
 
-    const matchesInstagram = filterInstagram === "" || userItem.instagram.toLowerCase().includes(filterInstagram.toLowerCase());
-    const matchesEmail = filterEmail === "" || userItem.email.toLowerCase().includes(filterEmail.toLowerCase());
-    const matchesPhone = filterPhone === "" || userItem.phone.includes(filterPhone);
-    const matchesAddress = filterAddress === "" || userItem.address.toLowerCase().includes(filterAddress.toLowerCase());
-    const matchesCity = filterCity === "" || userItem.city.toLowerCase().includes(filterCity.toLowerCase());
-    const matchesNeighborhood = filterNeighborhood === "" || userItem.neighborhood.toLowerCase().includes(filterNeighborhood.toLowerCase());
     const matchesStatus = filterStatus === "" || userItem.status === filterStatus;
+    
+    const matchesDate = filterDate === "" || userItem.registration_date === filterDate;
+    
     const matchesReferrer = filterReferrer === "" || userItem.referrer.toLowerCase().includes(filterReferrer.toLowerCase());
 
-    return matchesSearch && matchesInstagram && matchesEmail && matchesPhone && matchesAddress && matchesCity && matchesNeighborhood && matchesStatus && matchesReferrer;
+    return matchesSearch && matchesStatus && matchesDate && matchesReferrer;
   });
 
   // Loading state
@@ -206,7 +191,7 @@ export default function Dashboard() {
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold text-institutional-blue">
-              Dashboard - Projeto Base Eleitoral
+              Dashboard - Projeto Base de Membros
                 {isAdmin() && (
                 <span className="ml-2 text-sm bg-red-100 text-red-800 px-2 py-1 rounded-full">
                     {user?.username === 'admin' ? 'ADMIN' : 'VEREADOR'}
@@ -216,7 +201,7 @@ export default function Dashboard() {
             <p className="text-muted-foreground mt-1">
                 {isAdminUser
                 ? "Visão geral completa do sistema - Todos os usuários e dados consolidados"
-                : "Gerencie sua rede eleitoral e acompanhe resultados"
+                : "Gerencie sua rede de membros e acompanhe resultados"
               }
             </p>
           </div>
@@ -228,19 +213,9 @@ export default function Dashboard() {
               className="bg-institutional-gold hover:bg-institutional-gold/90 text-institutional-blue font-medium"
             >
               <Share2 className="w-4 h-4 mr-2" />
-              {isAdminUser ? 'Gerar Link para Membro' : 'Gerar Link Único'}
+              {isAdminUser ? 'Gerar e Copiar Link' : 'Gerar e Copiar Link'}
             </Button>
             
-            {userLink && (
-              <Button
-                onClick={copyLink}
-                variant="outline"
-                className="border-institutional-gold text-institutional-gold hover:bg-institutional-gold/10"
-              >
-                <LinkIcon className="w-4 h-4 mr-2" />
-                Copiar Link
-              </Button>
-            )}
           </div>
           )}
         </div>
@@ -256,9 +231,9 @@ export default function Dashboard() {
       </div>
 
 
-        {/* Gráficos de Estatísticas */}
+        {/* Gráficos de Estatísticas - Primeira Linha */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          {/* Gráfico de Barras - Usuários por Cidade/Bairro */}
+          {/* Gráfico de Barras - Usuários por Localização */}
           <Card className="shadow-[var(--shadow-card)]">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-institutional-blue">
@@ -267,7 +242,7 @@ export default function Dashboard() {
               </CardTitle>
               <CardDescription>
                 {isAdminUser 
-                  ? 'Distribuição por cidade e bairro - Todos os usuários' 
+                  ? 'Distribuição por cidade e setor - Todos os usuários' 
                   : 'Distribuição dos seus usuários por localização'
                 }
               </CardDescription>
@@ -285,33 +260,7 @@ export default function Dashboard() {
             </CardContent>
           </Card>
 
-          {/* Gráfico de Linha - Cadastros Recentes */}
-          <Card className="shadow-[var(--shadow-card)]">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-institutional-blue">
-                <TrendingUp className="w-5 h-5" />
-                Cadastros Recentes
-              </CardTitle>
-              <CardDescription>
-                Últimos 7 dias - {stats.recent_registrations} novos cadastros
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={reportData.registrationsByDay}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="date" />
-                  <YAxis />
-                  <Tooltip />
-                  <Bar dataKey="count" fill="#10B981" />
-                </BarChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Gráfico de Pizza - Status dos Usuários */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          {/* Gráfico de Pizza - Status dos Usuários */}
           <Card className="shadow-[var(--shadow-card)]">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-institutional-blue">
@@ -346,42 +295,80 @@ export default function Dashboard() {
           </Card>
         </div>
 
-        {/* Novos Reports - Engagement Rate e Registration Count */}
+        {/* Gráficos de Estatísticas - Segunda Linha */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          {/* Gráfico de Taxa de Engajamento */}
+          {/* Gráfico de Barras - Setores por Cidade */}
+          <Card className="shadow-[var(--shadow-card)]">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-institutional-blue">
+                <MapPin className="w-5 h-5" />
+                Setores por Cidade
+              </CardTitle>
+              <CardDescription>
+                Quantidade de setores distintos cadastrados em cada cidade
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={Object.entries(reportData.sectorsByCity).map(([city, count]) => ({ city, count }))}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="city" angle={-45} textAnchor="end" height={80} />
+                  <YAxis />
+                  <Tooltip />
+                  <Bar dataKey="count" fill="#8B5CF6" />
+                </BarChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+
+          {/* Gráfico de Barras - Pessoas Cadastradas por Cidade */}
+          <Card className="shadow-[var(--shadow-card)]">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-institutional-blue">
+                <Users className="w-5 h-5" />
+                Pessoas Cadastradas por Cidade
+              </CardTitle>
+              <CardDescription>
+                Total de pessoas cadastradas em cada cidade
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={Object.entries(reportData.usersByCity).map(([city, count]) => ({ city, count }))}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="city" angle={-45} textAnchor="end" height={80} />
+                  <YAxis />
+                  <Tooltip />
+                  <Bar dataKey="count" fill="#10B981" />
+                </BarChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Gráficos de Estatísticas - Terceira Linha */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          {/* Gráfico de Linha - Cadastros Recentes */}
           <Card className="shadow-[var(--shadow-card)]">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-institutional-blue">
                 <TrendingUp className="w-5 h-5" />
-                Taxa de Engajamento
+                Cadastros Recentes
               </CardTitle>
               <CardDescription>
-                {isAdminUser 
-                  ? 'Taxa de engajamento geral do sistema' 
-                  : 'Sua taxa de engajamento'
-                }
+                Últimos 7 dias - {stats.recent_registrations} novos cadastros
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="flex items-center justify-center h-[300px]">
-                <div className="text-center">
-                  <div className="text-4xl font-bold text-institutional-gold mb-2">
-                    {stats.engagement_rate}%
-                  </div>
-                  <div className="text-sm text-muted-foreground">
-                    {stats.engagement_rate >= 80 ? 'Excelente engajamento!' : 
-                     stats.engagement_rate >= 60 ? 'Bom engajamento' : 
-                     stats.engagement_rate >= 40 ? 'Engajamento moderado' : 
-                     'Engajamento baixo'}
-                  </div>
-                  <div className="mt-4 w-full bg-gray-200 rounded-full h-2">
-                    <div 
-                      className="bg-institutional-gold h-2 rounded-full transition-all duration-500"
-                      style={{ width: `${Math.min(stats.engagement_rate, 100)}%` }}
-                    ></div>
-                  </div>
-                </div>
-              </div>
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={reportData.registrationsByDay}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="date" />
+                  <YAxis />
+                  <Tooltip />
+                  <Bar dataKey="count" fill="#10B981" />
+                </BarChart>
+              </ResponsiveContainer>
             </CardContent>
           </Card>
 
@@ -445,6 +432,49 @@ export default function Dashboard() {
           </Card>
         </div>
 
+        {/* Novos Reports - Engagement Rate e Registration Count */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          {/* Gráfico de Taxa de Engajamento */}
+          <Card className="shadow-[var(--shadow-card)]">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-institutional-blue">
+                <TrendingUp className="w-5 h-5" />
+                Taxa de Engajamento
+              </CardTitle>
+              <CardDescription>
+                {isAdminUser 
+                  ? 'Taxa de engajamento geral do sistema' 
+                  : 'Sua taxa de engajamento'
+                }
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-center h-[300px]">
+                <div className="text-center">
+                  <div className="text-4xl font-bold text-institutional-gold mb-2">
+                    {stats.engagement_rate}%
+                  </div>
+                  <div className="text-sm text-muted-foreground">
+                    {stats.engagement_rate >= 80 ? 'Excelente engajamento!' : 
+                     stats.engagement_rate >= 60 ? 'Bom engajamento' : 
+                     stats.engagement_rate >= 40 ? 'Engajamento moderado' : 
+                     'Engajamento baixo'}
+                  </div>
+                  <div className="mt-4 w-full bg-gray-200 rounded-full h-2">
+                    <div 
+                      className="bg-institutional-gold h-2 rounded-full transition-all duration-500"
+                      style={{ width: `${Math.min(stats.engagement_rate, 100)}%` }}
+                    ></div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Card vazio para manter alinhamento */}
+          <div></div>
+        </div>
+
         {/* Cards de Resumo */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           <Card className="shadow-[var(--shadow-card)] border-l-4 border-l-institutional-gold">
@@ -505,8 +535,8 @@ export default function Dashboard() {
             </CardDescription>
         </CardHeader>
         <CardContent>
-          {/* Filtros Avançados */}
-          <div className="mb-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {/* Filtros */}
+          <div className="mb-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
@@ -517,69 +547,25 @@ export default function Dashboard() {
                 className="pl-10 border-institutional-light focus:border-institutional-gold focus:ring-institutional-gold"
               />
             </div>
-            
+
             <div className="relative">
-              <Instagram className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <UserCheck className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
                 type="text"
-                placeholder="Filtrar por Instagram..."
-                value={filterInstagram}
-                onChange={(e) => setFilterInstagram(e.target.value)}
+                placeholder="Filtrar por indicador..."
+                value={filterReferrer}
+                onChange={(e) => setFilterReferrer(e.target.value)}
                 className="pl-10 border-institutional-light focus:border-institutional-gold focus:ring-institutional-gold"
               />
             </div>
 
             <div className="relative">
-              <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <CalendarDays className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
-                type="text"
-                placeholder="Filtrar por email..."
-                value={filterEmail}
-                onChange={(e) => setFilterEmail(e.target.value)}
-                className="pl-10 border-institutional-light focus:border-institutional-gold focus:ring-institutional-gold"
-              />
-            </div>
-
-            <div className="relative">
-              <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                type="text"
-                placeholder="Filtrar por telefone..."
-                value={filterPhone}
-                onChange={(e) => setFilterPhone(e.target.value)}
-                className="pl-10 border-institutional-light focus:border-institutional-gold focus:ring-institutional-gold"
-              />
-            </div>
-
-            <div className="relative">
-              <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                type="text"
-                placeholder="Filtrar por endereço..."
-                value={filterAddress}
-                onChange={(e) => setFilterAddress(e.target.value)}
-                className="pl-10 border-institutional-light focus:border-institutional-gold focus:ring-institutional-gold"
-              />
-            </div>
-
-            <div className="relative">
-              <Building className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                type="text"
-                placeholder="Filtrar por cidade..."
-                value={filterCity}
-                onChange={(e) => setFilterCity(e.target.value)}
-                className="pl-10 border-institutional-light focus:border-institutional-gold focus:ring-institutional-gold"
-              />
-            </div>
-
-            <div className="relative">
-              <Home className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                type="text"
-                placeholder="Filtrar por bairro..."
-                value={filterNeighborhood}
-                onChange={(e) => setFilterNeighborhood(e.target.value)}
+                type="date"
+                placeholder="Filtrar por data..."
+                value={filterDate}
+                onChange={(e) => setFilterDate(e.target.value)}
                 className="pl-10 border-institutional-light focus:border-institutional-gold focus:ring-institutional-gold"
               />
             </div>
@@ -596,17 +582,6 @@ export default function Dashboard() {
                 <option value="Inativo">Inativo</option>
               </select>
             </div>
-
-            <div className="relative">
-              <UserIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                type="text"
-                placeholder="Filtrar por indicador..."
-                value={filterReferrer}
-                onChange={(e) => setFilterReferrer(e.target.value)}
-                className="pl-10 border-institutional-light focus:border-institutional-gold focus:ring-institutional-gold"
-              />
-            </div>
           </div>
 
           {/* Tabela de Usuários */}
@@ -615,13 +590,10 @@ export default function Dashboard() {
               <thead>
                 <tr className="border-b border-institutional-light">
                   <th className="text-left py-3 px-4 font-semibold text-institutional-blue">Nome</th>
-                  <th className="text-left py-3 px-4 font-semibold text-institutional-blue">Endereço</th>
-                  <th className="text-left py-3 px-4 font-semibold text-institutional-blue">UF</th>
-                  <th className="text-left py-3 px-4 font-semibold text-institutional-blue">Cidade</th>
-                  <th className="text-left py-3 px-4 font-semibold text-institutional-blue">Bairro</th>
-                  <th className="text-left py-3 px-4 font-semibold text-institutional-blue">Telefone</th>
-                  <th className="text-left py-3 px-4 font-semibold text-institutional-blue">Email</th>
+                  <th className="text-left py-3 px-4 font-semibold text-institutional-blue">WhatsApp</th>
                   <th className="text-left py-3 px-4 font-semibold text-institutional-blue">Instagram</th>
+                  <th className="text-left py-3 px-4 font-semibold text-institutional-blue">Cidade</th>
+                  <th className="text-left py-3 px-4 font-semibold text-institutional-blue">Setor</th>
                   <th className="text-left py-3 px-4 font-semibold text-institutional-blue">Indicado por</th>
                   <th className="text-left py-3 px-4 font-semibold text-institutional-blue">Data Cadastro</th>
                   <th className="text-left py-3 px-4 font-semibold text-institutional-blue">Status</th>
@@ -640,14 +612,14 @@ export default function Dashboard() {
                     </td>
                     <td className="py-3 px-4">
                       <div className="flex items-center gap-2">
-                        <MapPin className="w-4 h-4 text-muted-foreground" />
-                        <span className="text-sm">{user.address}</span>
+                        <Phone className="w-4 h-4 text-muted-foreground" />
+                        <span className="text-sm">{user.phone}</span>
                       </div>
                     </td>
                     <td className="py-3 px-4">
                       <div className="flex items-center gap-2">
-                        <Building className="w-4 h-4 text-muted-foreground" />
-                        <span className="text-sm font-medium">{user.state}</span>
+                        <Instagram className="w-4 h-4 text-muted-foreground" />
+                        <span className="text-sm text-pink-600">{user.instagram}</span>
                       </div>
                     </td>
                     <td className="py-3 px-4">
@@ -659,25 +631,7 @@ export default function Dashboard() {
                     <td className="py-3 px-4">
                       <div className="flex items-center gap-2">
                         <MapPin className="w-4 h-4 text-muted-foreground" />
-                        <span className="text-sm">{user.neighborhood}</span>
-                      </div>
-                    </td>
-                    <td className="py-3 px-4">
-                      <div className="flex items-center gap-2">
-                        <Phone className="w-4 h-4 text-muted-foreground" />
-                        <span className="text-sm">{user.phone}</span>
-                      </div>
-                    </td>
-                    <td className="py-3 px-4">
-                      <div className="flex items-center gap-2">
-                        <Mail className="w-4 h-4 text-muted-foreground" />
-                        <span className="text-sm">{user.email}</span>
-                      </div>
-                    </td>
-                    <td className="py-3 px-4">
-                      <div className="flex items-center gap-2">
-                        <Instagram className="w-4 h-4 text-muted-foreground" />
-                        <span className="text-sm text-pink-600">{user.instagram}</span>
+                        <span className="text-sm">{user.sector}</span>
                       </div>
                     </td>
                     <td className="py-3 px-4">

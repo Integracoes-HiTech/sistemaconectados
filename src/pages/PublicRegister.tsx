@@ -1,30 +1,27 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Autocomplete, AutocompleteRef } from "@/components/ui/autocomplete";
 import { Logo } from "@/components/Logo";
 import { useToast } from "@/hooks/use-toast";
-import { User, Phone, Mail, Instagram, UserPlus, CheckCircle, MapPin, Building, AlertCircle } from "lucide-react";
+import { User, Phone, Mail, Instagram, UserPlus, CheckCircle, MapPin, Building, AlertCircle, LogIn, ExternalLink } from "lucide-react";
 import { useUsers } from "@/hooks/useUsers";
 import { useUserLinks, UserLink } from "@/hooks/useUserLinks";
 import { useCredentials } from "@/hooks/useCredentials";
 import { emailService, generateCredentials } from "@/services/emailService";
 // COMENTADO: Validação do Instagram (não está pronta)
 // import { validateInstagramAccount } from "@/services/instagramValidation";
-import { AuthUser } from "@/lib/supabase";
+import { AuthUser, supabase } from "@/lib/supabase";
 
 export default function PublicRegister() {
   const { linkId } = useParams();
   const [formData, setFormData] = useState({
     name: "",
-    address: "",
-    state: "",
-    city: "",
-    neighborhood: "",
     phone: "",
-    email: "",
     instagram: "",
+    city: "",
+    sector: "",
     referrer: ""
   });
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
@@ -32,6 +29,12 @@ export default function PublicRegister() {
   const [isSuccess, setIsSuccess] = useState(false);
   const [referrerData, setReferrerData] = useState<AuthUser | null>(null);
   const [linkData, setLinkData] = useState<UserLink | null>(null);
+  const hasFetchedData = useRef(false);
+  
+  // Refs para validação dos autocompletes
+  const cityAutocompleteRef = useRef<AutocompleteRef>(null);
+  const sectorAutocompleteRef = useRef<AutocompleteRef>(null);
+  
   // COMENTADO: Estados de validação do Instagram (não estão prontos)
   // const [isValidatingInstagram, setIsValidatingInstagram] = useState(false);
   // const [instagramValidationError, setInstagramValidationError] = useState<string | null>(null);
@@ -41,36 +44,7 @@ export default function PublicRegister() {
   const { createUserWithCredentials } = useCredentials();
   const { toast } = useToast();
 
-  // Dados mockados para UF e Cidades
-  const estadosECidades = {
-    "GO": ["Aparecida de Goiânia", "Goiânia", "Anápolis", "Rio Verde", "Luziânia", "Águas Lindas de Goiás", "Valparaíso de Goiás", "Trindade", "Formosa", "Novo Gama"],
-    "SP": ["São Paulo", "Guarulhos", "Campinas", "São Bernardo do Campo", "Santo André", "Osasco", "Ribeirão Preto", "Sorocaba", "Mauá", "São José dos Campos"],
-    "RJ": ["Rio de Janeiro", "São Gonçalo", "Duque de Caxias", "Nova Iguaçu", "Niterói", "Belford Roxo", "São João de Meriti", "Campos dos Goytacazes", "Petrópolis", "Volta Redonda"],
-    "MG": ["Belo Horizonte", "Uberlândia", "Contagem", "Juiz de Fora", "Betim", "Montes Claros", "Ribeirão das Neves", "Uberaba", "Governador Valadares", "Ipatinga"],
-    "PR": ["Curitiba", "Londrina", "Maringá", "Ponta Grossa", "Cascavel", "São José dos Pinhais", "Foz do Iguaçu", "Colombo", "Guarapuava", "Paranaguá"],
-    "RS": ["Porto Alegre", "Caxias do Sul", "Pelotas", "Canoas", "Santa Maria", "Gravataí", "Viamão", "Novo Hamburgo", "São Leopoldo", "Rio Grande"],
-    "BA": ["Salvador", "Feira de Santana", "Vitória da Conquista", "Camaçari", "Juazeiro", "Itabuna", "Lauro de Freitas", "Ilhéus", "Jequié", "Alagoinhas"],
-    "PE": ["Recife", "Jaboatão dos Guararapes", "Olinda", "Caruaru", "Petrolina", "Paulista", "Cabo de Santo Agostinho", "Camaragibe", "Garanhuns", "Vitória de Santo Antão"],
-    "CE": ["Fortaleza", "Caucaia", "Juazeiro do Norte", "Maracanaú", "Sobral", "Crato", "Itapipoca", "Maranguape", "Iguatu", "Quixadá"],
-    "DF": ["Brasília", "Ceilândia", "Samambaia", "Taguatinga", "Plano Piloto", "Gama", "Santa Maria", "São Sebastião", "Recanto das Emas", "Lago Sul"]
-  };
 
-  const estados = Object.keys(estadosECidades);
-
-  // Função fallback para dados mockados (caso não encontre no banco)
-  const getUserFromLinkIdFallback = (linkId: string | undefined) => {
-    if (!linkId) return "Usuário do Sistema";
-    
-    const username = linkId.split('-')[0];
-    const userMap: Record<string, string> = {
-      joao: "João Silva - Membro",
-      marcos: "Marcos Santos - Amigo",
-      admin: "Admin - Administrador",
-      wegneycosta: "Wegney Costa - Convidado"
-    };
-    
-    return userMap[username] || "Usuário do Sistema";
-  };
 
   // Funções de validação
   const validateEmail = (email: string) => {
@@ -158,41 +132,23 @@ export default function PublicRegister() {
       errors.name = 'Deve conter nome e sobrenome';
     }
     
-    if (!formData.address.trim()) {
-      errors.address = 'Endereço é obrigatório';
-    }
-    
-    if (!formData.state) {
-      errors.state = 'UF é obrigatório';
-    }
-    
-    if (!formData.city) {
-      errors.city = 'Cidade é obrigatória';
-    }
-    
-    if (!formData.neighborhood.trim()) {
-      errors.neighborhood = 'Bairro é obrigatório';
-    }
-    
     if (!formData.phone.trim()) {
-      errors.phone = 'Telefone é obrigatório';
+      errors.phone = 'WhatsApp é obrigatório';
     } else if (!validatePhone(formData.phone)) {
-      errors.phone = 'Telefone deve ter 11 dígitos (DDD + 9 dígitos)';
-    }
-    
-    if (!formData.email.trim()) {
-      errors.email = 'Email é obrigatório';
-    } else if (!validateEmail(formData.email)) {
-      errors.email = 'Email deve ter formato válido (ex: usuario@dominio.com)';
+      errors.phone = 'WhatsApp deve ter 11 dígitos (DDD + 9 dígitos)';
     }
     
     if (!formData.instagram.trim()) {
       errors.instagram = 'Instagram é obrigatório';
     }
-    // COMENTADO: Validação adicional do Instagram (não está pronta)
-    // else if (instagramValidationError) {
-    //   errors.instagram = instagramValidationError;
-    // }
+    
+    if (!formData.city.trim()) {
+      errors.city = 'Cidade é obrigatória';
+    }
+    
+    if (!formData.sector.trim()) {
+      errors.sector = 'Setor é obrigatório';
+    }
     
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
@@ -216,44 +172,14 @@ export default function PublicRegister() {
     if (formErrors[field]) {
       setFormErrors(prev => ({ ...prev, [field]: '' }));
     }
-
-    // COMENTADO: Limpeza de erro de validação do Instagram (não está pronta)
-    // if (field === 'instagram' && instagramValidationError) {
-    //   setInstagramValidationError(null);
-    // }
   };
 
-  const handleInstagramBlur = async () => {
-    // COMENTADO: Validação automática do Instagram (não está pronta)
-    /*
-    if (formData.instagram.trim()) {
-      const validation = await validateInstagram(formData.instagram);
-      if (!validation.isValid) {
-        setInstagramValidationError(validation.error);
-        setFormErrors(prev => ({ ...prev, instagram: validation.error }));
-      }
-    }
-    */
-  };
 
-  const handleStateChange = (state: string) => {
-    setFormData(prev => ({ ...prev, state, city: '' })); // Limpa a cidade quando muda o estado
-    if (formErrors.state) {
-      setFormErrors(prev => ({ ...prev, state: '' }));
-    }
-  };
-
-  const handleCityChange = (city: string) => {
-    setFormData(prev => ({ ...prev, city }));
-    if (formErrors.city) {
-      setFormErrors(prev => ({ ...prev, city: '' }));
-    }
-  };
-
-  // Buscar dados do referrer quando o componente carregar
-  useEffect(() => {
-    const fetchReferrerData = async () => {
-      if (!linkId) return;
+  // Função memoizada para buscar dados do referrer
+  const fetchReferrerData = useCallback(async () => {
+    if (!linkId || hasFetchedData.current) return;
+    
+    hasFetchedData.current = true;
       
       try {
         const result = await getUserByLinkId(linkId);
@@ -268,21 +194,21 @@ export default function PublicRegister() {
           // Incrementar contador de cliques quando o link for acessado
           await incrementClickCount(linkId);
         } else {
-          // Fallback para dados mockados se não encontrar no banco
-          const fallbackData = getUserFromLinkIdFallback(linkId);
-          setFormData(prev => ({ ...prev, referrer: fallbackData }));
+          // Fallback se não encontrar no banco
+          setFormData(prev => ({ ...prev, referrer: 'Usuário do Sistema' }));
         }
       } catch (error) {
         console.error('Erro ao buscar dados do referrer:', error);
-        const fallbackData = getUserFromLinkIdFallback(linkId);
-        setFormData(prev => ({ ...prev, referrer: fallbackData }));
+        setFormData(prev => ({ ...prev, referrer: 'Usuário do Sistema' }));
       }
-    };
+  }, [linkId, getUserByLinkId, incrementClickCount]);
 
+  // Buscar dados do referrer quando o componente carregar
+  useEffect(() => {
     if (linkId) {
       fetchReferrerData();
     }
-  }, [linkId]); // Removido getUserByLinkId das dependências
+  }, [linkId, fetchReferrerData]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -297,11 +223,103 @@ export default function PublicRegister() {
       return;
     }
 
-    setIsLoading(true);
+    // VALIDAÇÃO FINAL: Verificar se cidade está exata no banco
+    try {
+      setIsLoading(true);
+      
+      // Validar cidade (deve existir exatamente)
+      if (cityAutocompleteRef.current) {
+        const cityValidation = await cityAutocompleteRef.current.validateValue();
+        if (!cityValidation.isValid) {
+          toast({
+            title: "Erro na cidade",
+            description: cityValidation.error || "Cidade inválida. Selecione uma cidade existente.",
+            variant: "destructive",
+          });
+          setIsLoading(false);
+          return;
+        }
+      }
 
+      // Verificar e criar setor se necessário
+      if (formData.sector.trim() && formData.city.trim()) {
+        console.log('🏢 Verificando/criando setor:', formData.sector, 'em', formData.city);
+        
+        // Primeiro, buscar o ID da cidade
+        const { data: cityData, error: cityError } = await supabase
+          .from('cities')
+          .select('id')
+          .eq('name', formData.city.trim())
+          .eq('state', 'GO')
+          .single();
+        
+        if (cityError || !cityData) {
+          throw new Error(`Cidade "${formData.city}" não encontrada`);
+        }
+        
+        // Verificar se o setor existe
+        const { data: existingSector, error: sectorError } = await supabase
+          .from('sectors')
+          .select('id, name')
+          .eq('name', formData.sector.trim())
+          .eq('city_id', cityData.id)
+          .single();
+        
+        if (sectorError && sectorError.code !== 'PGRST116') {
+          // Erro diferente de "não encontrado"
+          throw new Error(`Erro ao verificar setor: ${sectorError.message}`);
+        }
+        
+        if (!existingSector) {
+          // Setor não existe, criar
+          console.log('➕ Criando novo setor:', formData.sector);
+          const { data: newSector, error: createSectorError } = await supabase
+            .from('sectors')
+            .insert({ 
+              name: formData.sector.trim(), 
+              city_id: cityData.id 
+            })
+            .select()
+            .single();
+          
+          if (createSectorError) {
+            if (createSectorError.code === '23505') {
+              // Duplicação - setor já existe, buscar novamente
+              const { data: foundSector } = await supabase
+                .from('sectors')
+                .select('id, name')
+                .eq('name', formData.sector.trim())
+                .eq('city_id', cityData.id)
+                .single();
+              console.log('✅ Setor já existia:', foundSector);
+            } else {
+              throw new Error(`Erro ao criar setor: ${createSectorError.message}`);
+            }
+          } else {
+            console.log('✅ Setor criado:', newSector);
+          }
+        } else {
+          console.log('✅ Setor já existe:', existingSector);
+        }
+      }
+
+      console.log('✅ Validação e criação concluída com sucesso!');
+
+    } catch (error) {
+      console.error('💥 Erro na validação/criação:', error);
+      toast({
+        title: "Erro na validação",
+        description: error instanceof Error ? error.message : "Erro ao validar cidade e setor. Tente novamente.",
+        variant: "destructive",
+      });
+      setIsLoading(false);
+      return;
+    }
+
+    // Continuar com o cadastro do usuário
     try {
       // Verificar se usuário já existe antes de salvar
-      const userExistsCheck = await checkUserExists(formData.email.trim().toLowerCase(), formData.phone);
+      const userExistsCheck = await checkUserExists(formData.instagram.trim(), formData.phone);
       
       if (userExistsCheck.exists) {
         toast({
@@ -316,13 +334,10 @@ export default function PublicRegister() {
       // Preparar dados para salvar no banco
       const userData = {
         name: formData.name.trim(),
-        address: formData.address.trim(),
-        state: formData.state,
-        city: formData.city,
-        neighborhood: formData.neighborhood.trim(),
         phone: formData.phone,
-        email: formData.email.trim().toLowerCase(),
-        instagram: formData.instagram,
+        instagram: formData.instagram.trim(),
+        city: formData.city,
+        sector: formData.sector,
         referrer: formData.referrer,
         registration_date: new Date().toISOString().split('T')[0],
         status: 'Inativo' as const
@@ -342,37 +357,11 @@ export default function PublicRegister() {
         throw new Error((credentialsResult as { error: string }).error);
       }
 
-      // 3. Enviar email com credenciais
-      const emailData = {
-        to_email: userData.email,
-        to_name: userData.name,
-        from_name: "Sistema Conectados",
-        login_url: credentialsResult.credentials!.login_url,
-        username: credentialsResult.credentials!.username,
-        password: credentialsResult.credentials!.password,
-        referrer_name: formData.referrer,
-        system_url: 'https://sistemaconectados.vercel.app/'
-      };
-
-      console.log("Enviando email com dados:", emailData);
-      const emailResult = await emailService.sendWelcomeEmail(emailData);
-      
-      if (!emailResult.success) {
-        console.error("❌ Email não foi enviado:", emailResult.error);
-        toast({
-          title: "Email não enviado",
-          description: `Erro: ${emailResult.error}. Verifique o console para mais detalhes.`,
-          variant: "destructive",
-        });
-      } else {
-        console.log("✅ Email enviado com sucesso!");
-      }
-
-      // 4. Sucesso
+      // 3. Sucesso
       setIsSuccess(true);
       toast({
         title: "Cadastro realizado com sucesso!",
-        description: `Cadastro vinculado a ${formData.referrer}. As credenciais de acesso foram enviadas para seu email.`,
+        description: `Cadastro vinculado a ${formData.referrer}. Suas credenciais de acesso foram geradas automaticamente.`,
       });
 
     } catch (error) {
@@ -385,6 +374,18 @@ export default function PublicRegister() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  // Função para abrir página de login em nova aba
+  const handleOpenLogin = () => {
+    // Abrir página de login em nova aba
+    const loginUrl = `${window.location.origin}/login`;
+    window.open(loginUrl, '_blank');
+    
+    toast({
+      title: "Página de login aberta!",
+      description: "Use suas credenciais acima para fazer login no sistema.",
+    });
   };
 
   if (isSuccess) {
@@ -402,18 +403,35 @@ export default function PublicRegister() {
             <h2 className="text-2xl font-bold text-institutional-blue mb-2">
               Cadastro Realizado!
             </h2>
-            <p className="text-muted-foreground mb-4">
-              Suas credenciais de acesso foram enviadas para <strong>{formData.email}</strong>
+            <div className="bg-institutional-light rounded-lg p-4 mb-4">
+              <p className="text-sm text-institutional-blue mb-2">
+                <strong>Suas credenciais de acesso:</strong>
             </p>
+              <div className="space-y-2 text-sm">
+                <p><strong>Instagram:</strong> {formData.instagram.replace('@', '')}</p>
+                <p><strong>Senha:</strong> {formData.instagram.replace('@', '')}{formData.phone.slice(-4)}</p>
+              </div>
+            </div>
             <div className="bg-institutional-light rounded-lg p-4 mb-4">
               <p className="text-sm text-institutional-blue">
                 <strong>Cadastro vinculado a:</strong><br />
                 {formData.referrer}
               </p>
             </div>
-            <p className="text-sm text-institutional-blue bg-institutional-light p-3 rounded-lg">
-              Verifique sua caixa de entrada e spam. Você poderá acessar o sistema e gerar seus próprios links!
+            <p className="text-sm text-institutional-blue bg-institutional-light p-3 rounded-lg mb-4">
+              <strong>Como acessar:</strong> Use seu Instagram ({formData.instagram.replace('@', '')}) como usuário e a senha gerada acima para fazer login no sistema.
             </p>
+            
+            {/* Botão para Fazer Login */}
+            <Button
+              onClick={handleOpenLogin}
+              className="w-full h-12 bg-institutional-gold hover:bg-institutional-gold/90 text-institutional-blue font-semibold text-lg rounded-lg transition-all duration-200"
+            >
+              <div className="flex items-center gap-2">
+                <LogIn className="w-5 h-5" />
+                Fazer Login
+              </div>
+            </Button>
           </div>
         </div>
 
@@ -479,105 +497,40 @@ export default function PublicRegister() {
           )}
         </div>
 
-        {/* Campo Endereço */}
+        {/* Campo Cidade - AUTCOMPLETE */}
         <div className="space-y-1">
-          <div className="relative">
-            <MapPin className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
-            <Input
-              type="text"
-              placeholder="Endereço"
-              value={formData.address}
-              onChange={(e) => handleInputChange('address', e.target.value)}
-              className={`pl-12 h-12 bg-gray-800 border-gray-700 text-white placeholder-gray-400 focus:border-institutional-gold focus:ring-institutional-gold rounded-lg ${formErrors.address ? 'border-red-500' : ''}`}
-              required
-            />
-          </div>
-          {formErrors.address && (
-            <div className="flex items-center gap-1 text-red-400 text-sm">
-              <AlertCircle className="w-4 h-4" />
-              <span>{formErrors.address}</span>
-            </div>
-          )}
+          <Autocomplete
+            ref={cityAutocompleteRef}
+            value={formData.city}
+            onChange={(value) => handleInputChange('city', value)}
+            placeholder="Digite a cidade..."
+            icon={<Building className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />}
+            type="city"
+            error={formErrors.city}
+          />
         </div>
 
-        {/* Campos UF e Cidade */}
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-1">
-            <div className="relative">
-              <Building className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 z-10 pointer-events-none" />
-              <Select value={formData.state} onValueChange={handleStateChange}>
-                <SelectTrigger className={`pl-12 h-12 bg-gray-800 border-gray-700 text-white focus:border-institutional-gold focus:ring-institutional-gold rounded-lg ${formErrors.state ? 'border-red-500' : ''}`}>
-                  <SelectValue placeholder="UF" />
-                </SelectTrigger>
-                <SelectContent className="bg-gray-800 border-gray-700">
-                  {estados.map((estado) => (
-                    <SelectItem key={estado} value={estado} className="text-white hover:bg-gray-700">
-                      {estado}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            {formErrors.state && (
-              <div className="flex items-center gap-1 text-red-400 text-sm">
-                <AlertCircle className="w-4 h-4" />
-                <span>{formErrors.state}</span>
-              </div>
-            )}
-          </div>
-          <div className="space-y-1">
-            <div className="relative">
-              <Building className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 z-10 pointer-events-none" />
-              <Select value={formData.city} onValueChange={handleCityChange} disabled={!formData.state}>
-                <SelectTrigger className={`pl-12 h-12 bg-gray-800 border-gray-700 text-white focus:border-institutional-gold focus:ring-institutional-gold rounded-lg ${formErrors.city ? 'border-red-500' : ''}`}>
-                  <SelectValue placeholder="Cidade" />
-                </SelectTrigger>
-                <SelectContent className="bg-gray-800 border-gray-700">
-                  {formData.state && estadosECidades[formData.state as keyof typeof estadosECidades]?.map((cidade) => (
-                    <SelectItem key={cidade} value={cidade} className="text-white hover:bg-gray-700">
-                      {cidade}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            {formErrors.city && (
-              <div className="flex items-center gap-1 text-red-400 text-sm">
-                <AlertCircle className="w-4 h-4" />
-                <span>{formErrors.city}</span>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Campo Bairro */}
+        {/* Campo Setor - AUTCOMPLETE */}
         <div className="space-y-1">
-          <div className="relative">
-            <MapPin className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
-            <Input
-              type="text"
-              placeholder="Bairro"
-              value={formData.neighborhood}
-              onChange={(e) => handleInputChange('neighborhood', e.target.value)}
-              className={`pl-12 h-12 bg-gray-800 border-gray-700 text-white placeholder-gray-400 focus:border-institutional-gold focus:ring-institutional-gold rounded-lg ${formErrors.neighborhood ? 'border-red-500' : ''}`}
-              required
-            />
-          </div>
-          {formErrors.neighborhood && (
-            <div className="flex items-center gap-1 text-red-400 text-sm">
-              <AlertCircle className="w-4 h-4" />
-              <span>{formErrors.neighborhood}</span>
-            </div>
-          )}
+          <Autocomplete
+            ref={sectorAutocompleteRef}
+            value={formData.sector}
+            onChange={(value) => handleInputChange('sector', value)}
+            placeholder="Digite o setor..."
+            icon={<MapPin className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />}
+            type="sector"
+            cityValue={formData.city}
+            error={formErrors.sector}
+          />
         </div>
 
-        {/* Campo Telefone */}
+        {/* Campo WhatsApp */}
         <div className="space-y-1">
           <div className="relative">
             <Phone className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
             <Input
               type="tel"
-              placeholder="(62) 99999-9999"
+              placeholder="WhatsApp (62) 99999-9999"
               value={formData.phone}
               onChange={(e) => handleInputChange('phone', e.target.value)}
               className={`pl-12 h-12 bg-gray-800 border-gray-700 text-white placeholder-gray-400 focus:border-institutional-gold focus:ring-institutional-gold rounded-lg ${formErrors.phone ? 'border-red-500' : ''}`}
@@ -589,27 +542,6 @@ export default function PublicRegister() {
             <div className="flex items-center gap-1 text-red-400 text-sm">
               <AlertCircle className="w-4 h-4" />
               <span>{formErrors.phone}</span>
-            </div>
-          )}
-        </div>
-
-        {/* Campo Email */}
-        <div className="space-y-1">
-          <div className="relative">
-            <Mail className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
-            <Input
-              type="email"
-              placeholder="Email (ex: usuario@dominio.com)"
-              value={formData.email}
-              onChange={(e) => handleInputChange('email', e.target.value)}
-              className={`pl-12 h-12 bg-gray-800 border-gray-700 text-white placeholder-gray-400 focus:border-institutional-gold focus:ring-institutional-gold rounded-lg ${formErrors.email ? 'border-red-500' : ''}`}
-              required
-            />
-          </div>
-          {formErrors.email && (
-            <div className="flex items-center gap-1 text-red-400 text-sm">
-              <AlertCircle className="w-4 h-4" />
-              <span>{formErrors.email}</span>
             </div>
           )}
         </div>
@@ -660,7 +592,7 @@ export default function PublicRegister() {
 
         {/* Botão Cadastrar */}
         <Button
-          type="submit"
+          type="button"
           onClick={handleSubmit}
           disabled={isLoading}
           className="w-full h-12 bg-institutional-gold hover:bg-institutional-gold/90 text-institutional-blue font-semibold text-lg rounded-lg transition-all duration-200"
@@ -681,7 +613,7 @@ export default function PublicRegister() {
         {/* Informação adicional */}
         <div className="mt-6 p-4 bg-gray-800/50 rounded-lg border border-gray-700">
           <p className="text-xs text-gray-300">
-            <strong>Após o cadastro:</strong> Você receberá um email com login e senha para acessar o sistema e poderá gerar seus próprios links de cadastro.
+            <strong>Após o cadastro:</strong> Suas credenciais de acesso serão geradas automaticamente e exibidas na tela de sucesso. Você poderá acessar o sistema e gerar seus próprios links de cadastro.
           </p>
         </div>
       </div>

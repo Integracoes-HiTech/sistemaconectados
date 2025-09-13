@@ -25,11 +25,14 @@ export const useAuth = () => {
     try {
       setLoading(true)
 
-      // Buscar usuário na tabela auth_users por username OU email
+      // Normalizar username (remover @ e converter para minúsculo)
+      const normalizedUsername = username.replace('@', '').toLowerCase()
+
+      // Buscar usuário na tabela auth_users por username
       const { data, error } = await supabase
         .from('auth_users')
         .select('*')
-        .or(`username.eq.${username.toLowerCase()},email.eq.${username.toLowerCase()}`)
+        .eq('username', normalizedUsername)
         .eq('password', password) // Em produção, usar hash da senha
         .single()
 
@@ -52,7 +55,7 @@ export const useAuth = () => {
             status: 'Ativo',
             updated_at: new Date().toISOString()
           })
-          .eq('email', data.email)
+          .eq('instagram', data.instagram)
 
         const userData: AuthUser = {
           id: data.id,

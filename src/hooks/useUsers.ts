@@ -106,28 +106,28 @@ export const useUsers = (referrer?: string) => {
     }
   }
 
-  const checkUserExists = async (email: string, phone: string) => {
+  const checkUserExists = async (instagram: string, phone: string) => {
     try {
       // Normalizar telefone para comparação (remover formatação)
       const normalizedPhone = phone.replace(/\D/g, '');
       
-      // Verificar se já existe usuário com este email ou telefone
+      // Verificar se já existe usuário com este Instagram ou telefone
       const { data, error } = await supabase
         .from('users')
-        .select('id, name, email, phone')
+        .select('id, name, instagram, phone')
 
       if (error) throw error
 
       // Verificar manualmente para comparar telefones normalizados
       const existingUser = data?.find(user => {
-        const userEmailMatch = user.email === email;
+        const userInstagramMatch = user.instagram === instagram;
         const userPhoneMatch = user.phone?.replace(/\D/g, '') === normalizedPhone;
-        return userEmailMatch || userPhoneMatch;
+        return userInstagramMatch || userPhoneMatch;
       });
 
       if (existingUser) {
-        const conflictType = existingUser.email === email ? 'email' : 'telefone'
-        const conflictValue = existingUser.email === email ? email : phone
+        const conflictType = existingUser.instagram === instagram ? 'Instagram' : 'telefone'
+        const conflictValue = existingUser.instagram === instagram ? instagram : phone
         
         return {
           exists: true,

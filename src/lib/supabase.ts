@@ -10,13 +10,10 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 export interface User {
   id: string
   name: string
-  address: string
-  state: string
-  city: string
-  neighborhood: string
   phone: string
-  email: string
   instagram: string
+  city: string
+  sector: string
   referrer: string
   registration_date: string
   status: 'Ativo' | 'Inativo'
