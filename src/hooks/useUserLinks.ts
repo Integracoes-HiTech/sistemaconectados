@@ -10,9 +10,11 @@ export interface UserLink {
   is_active: boolean
   click_count: number
   registration_count: number
+  link_type: 'members' | 'friends'
   created_at: string
   expires_at?: string
   updated_at: string
+  deleted_at?: string | null
   user_data?: AuthUser
 }
 
@@ -37,6 +39,7 @@ export const useUserLinks = (userId?: string) => {
           user_data:auth_users(*)
         `)
         .eq('is_active', true)
+        .is('deleted_at', null)
         .order('created_at', { ascending: false })
 
       // Se userId for fornecido, filtrar por usuário
@@ -66,9 +69,37 @@ export const useUserLinks = (userId?: string) => {
         `)
         .eq('link_id', linkId)
         .eq('is_active', true)
+        .is('deleted_at', null)
         .single()
 
       if (error) throw error
+
+      // Se o link não tem link_type definido, corrigir baseado na configuração atual
+      if (data && !data.link_type) {
+        console.log('🔧 Link sem link_type encontrado, corrigindo...');
+        
+        // Buscar configuração atual do sistema
+        const { data: settingsData, error: settingsError } = await supabase
+          .from('system_settings')
+          .select('setting_value')
+          .eq('setting_key', 'member_links_type')
+          .single()
+
+        const linkType = settingsData?.setting_value || 'members'
+        
+        // Atualizar o link com o tipo correto
+        const { error: updateError } = await supabase
+          .from('user_links')
+          .update({ link_type: linkType })
+          .eq('id', data.id)
+
+        if (updateError) {
+          console.warn('⚠️ Erro ao corrigir link_type:', updateError);
+        } else {
+          console.log('✅ Link_type corrigido para:', linkType);
+          data.link_type = linkType;
+        }
+      }
 
       return { success: true, data }
     } catch (err) {
@@ -81,6 +112,22 @@ export const useUserLinks = (userId?: string) => {
 
   const createUserLink = async (userId: string, linkId: string, referrerName: string, expiresAt?: string) => {
     try {
+      // Buscar configuração do sistema para definir o tipo de link
+      const { data: settingsData, error: settingsError } = await supabase
+        .from('system_settings')
+        .select('setting_value')
+        .eq('setting_key', 'member_links_type')
+        .single()
+
+      if (settingsError) {
+        console.warn('⚠️ Erro ao buscar configuração de tipo de links, usando padrão:', settingsError);
+      }
+
+      // Definir tipo de link baseado na configuração do sistema (padrão: 'members')
+      const linkType = settingsData?.setting_value || 'members'
+      
+      console.log('🔍 Criando link com tipo:', linkType);
+
       const { data, error } = await supabase
         .from('user_links')
         .insert([{
@@ -90,7 +137,8 @@ export const useUserLinks = (userId?: string) => {
           expires_at: expiresAt,
           is_active: true,
           click_count: 0,
-          registration_count: 0
+          registration_count: 0,
+          link_type: linkType
         }])
         .select()
 
@@ -184,6 +232,7 @@ export const useUserLinks = (userId?: string) => {
         .select('*')
         .eq('user_id', userId)
         .eq('is_active', true)
+        .is('deleted_at', null)
 
       if (fetchError) throw fetchError
 
@@ -209,6 +258,36 @@ export const useUserLinks = (userId?: string) => {
     }
   }
 
+  // Função para soft delete de user link
+  const softDeleteUserLink = async (linkId: string) => {
+    try {
+      console.log('🗑️ Executando soft delete do link:', linkId);
+      
+      const { data, error } = await supabase
+        .rpc('soft_delete_user_link', { link_id_param: linkId })
+
+      if (error) {
+        console.error('❌ Erro no soft delete do link:', error);
+        throw error;
+      }
+
+      console.log('✅ Soft delete do link executado com sucesso:', data);
+
+      // Recarregar dados após exclusão
+      await fetchUserLinks();
+
+      return { success: true, data };
+    } catch (err) {
+      console.error('❌ Erro geral no softDeleteUserLink:', err);
+      return { 
+        success: false, 
+        error: err instanceof Error ? err.message : 'Erro ao excluir link' 
+      };
+    }
+  }
+
+
+
   return {
     userLinks,
     loading,
@@ -218,6 +297,7 @@ export const useUserLinks = (userId?: string) => {
     createUserLink,
     createLink,
     deactivateUserLink,
-    incrementClickCount
+    incrementClickCount,
+    softDeleteUserLink
   }
 }

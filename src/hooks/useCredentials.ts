@@ -30,13 +30,22 @@ export const useCredentials = () => {
   }
 
   // Criar usuário de autenticação com credenciais geradas
-  const createAuthUser = async (userData: { name: string; instagram: string; phone: string; referrer?: string }, credentials: Credentials) => {
+  const createAuthUser = async (userData: { name: string; instagram: string; phone: string; referrer?: string; display_name?: string }, credentials: Credentials) => {
     try {
       setLoading(true)
 
-      // Determinar role baseado no referrer
-      let userRole = 'Convidado';
-      let fullName = `${userData.name} - Convidado`;
+      // Verificar se a fase de contratos pagos está ativa
+      const { data: phaseData } = await supabase
+        .from('system_settings')
+        .select('setting_value')
+        .eq('setting_key', 'paid_contracts_phase_active')
+        .single();
+
+      const isPaidContractsPhaseActive = phaseData?.setting_value === 'true';
+
+      // Determinar role baseado no referrer e na fase ativa
+      let userRole = 'Membro'; // Padrão: sempre Membro
+      let fullName = `${userData.name} - Membro`;
 
       // Se tem referrer, verificar o role do referrer
       if (userData.referrer) {
@@ -48,20 +57,26 @@ export const useCredentials = () => {
           .single();
 
         if (referrerData) {
-          // Se referrer é Admin/Administrador, usuário é Membro
-          if (referrerData.role === 'Admin' || referrerData.role === 'Administrador') {
+          // Se referrer é Administrador, usuário é Membro
+          if (referrerData.role === 'Administrador') {
             userRole = 'Membro';
             fullName = `${userData.name} - Membro`;
           }
-          // Se referrer é Membro, usuário é Amigo
+          // Se referrer é Membro, usuário pode ser Amigo (mas só se a fase estiver ativa)
           else if (referrerData.role === 'Membro') {
-            userRole = 'Amigo';
-            fullName = `${userData.name} - Amigo`;
+            if (isPaidContractsPhaseActive) {
+              userRole = 'Amigo';
+              fullName = `${userData.name} - Amigo`;
+            } else {
+              // Fase inativa: membros cadastram membros
+              userRole = 'Membro';
+              fullName = `${userData.name} - Membro`;
+            }
           }
-          // Se referrer é Amigo, usuário é Convidado
+          // Se referrer é Amigo, usuário é Membro (não há mais Convidado)
           else if (referrerData.role === 'Amigo') {
-            userRole = 'Convidado';
-            fullName = `${userData.name} - Convidado`;
+            userRole = 'Membro';
+            fullName = `${userData.name} - Membro`;
           }
         }
       }
@@ -72,6 +87,7 @@ export const useCredentials = () => {
         name: userData.name,
         role: userRole,
         full_name: fullName,
+        display_name: userData.display_name || null,
         instagram: userData.instagram,
         phone: userData.phone,
         is_active: false // ← MUDANÇA: Status inativo por padrão
@@ -132,7 +148,7 @@ export const useCredentials = () => {
   }
 
   // Processo completo: gerar credenciais únicas e criar usuário
-  const createUserWithCredentials = async (userData: { name: string; instagram: string; phone: string; referrer?: string }): Promise<{
+  const createUserWithCredentials = async (userData: { name: string; instagram: string; phone: string; referrer?: string; display_name?: string }): Promise<{
     success: true;
     credentials: Credentials;
     authUser: unknown;

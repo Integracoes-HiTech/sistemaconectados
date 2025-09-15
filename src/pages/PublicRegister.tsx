@@ -8,7 +8,15 @@ import { useToast } from "@/hooks/use-toast";
 import { User, Phone, Mail, Instagram, UserPlus, CheckCircle, MapPin, Building, AlertCircle, LogIn, ExternalLink } from "lucide-react";
 import { useUsers } from "@/hooks/useUsers";
 import { useUserLinks, UserLink } from "@/hooks/useUserLinks";
+
+// Interface estendida para incluir link_type
+interface ExtendedUserLink extends UserLink {
+  link_type: 'members' | 'friends';
+}
 import { useCredentials } from "@/hooks/useCredentials";
+import { useMembers } from "@/hooks/useMembers";
+import { useSystemSettings } from "@/hooks/useSystemSettings";
+import { useFriends } from "@/hooks/useFriends";
 import { emailService, generateCredentials } from "@/services/emailService";
 // COMENTADO: Validação do Instagram (não está pronta)
 // import { validateInstagramAccount } from "@/services/instagramValidation";
@@ -25,14 +33,24 @@ export default function PublicRegister() {
     instagram: "",
     city: "",
     sector: "",
-    referrer: ""
+    referrer: "",
+    // Dados da segunda pessoa (obrigatório)
+    couple_name: "",
+    couple_phone: "",
+    couple_instagram: "",
+    couple_city: "",
+    couple_sector: ""
   });
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [referrerData, setReferrerData] = useState<AuthUser | null>(null);
-  const [linkData, setLinkData] = useState<UserLink | null>(null);
+  const [linkData, setLinkData] = useState<ExtendedUserLink | null>(null);
   const hasFetchedData = useRef(false);
+  
+  // Estados para nome de exibição personalizado
+  const [showDisplayNameModal, setShowDisplayNameModal] = useState(false);
+  const [displayName, setDisplayName] = useState("");
   
   
   // COMENTADO: Estados de validação do Instagram (não estão prontos)
@@ -42,6 +60,9 @@ export default function PublicRegister() {
   const { addUser, checkUserExists } = useUsers();
   const { getUserByLinkId, incrementClickCount } = useUserLinks();
   const { createUserWithCredentials } = useCredentials();
+  const { addMember } = useMembers();
+  const { shouldShowMemberLimitAlert, checkMemberLimit } = useSystemSettings();
+  const { addFriend } = useFriends();
   const { toast } = useToast();
 
 
@@ -126,6 +147,7 @@ export default function PublicRegister() {
   const validateRequiredFields = () => {
     const errors: Record<string, string> = {};
     
+    // Validação da primeira pessoa
     if (!formData.name.trim()) {
       errors.name = 'Nome é obrigatório';
     } else if (!validateName(formData.name)) {
@@ -149,6 +171,31 @@ export default function PublicRegister() {
     if (!formData.sector.trim()) {
       errors.sector = 'Setor é obrigatório - selecione um setor válido da lista';
     }
+
+    // Validação da segunda pessoa (obrigatória)
+    if (!formData.couple_name.trim()) {
+      errors.couple_name = 'Nome da segunda pessoa é obrigatório';
+    } else if (!validateName(formData.couple_name)) {
+      errors.couple_name = 'Deve conter nome e sobrenome';
+    }
+    
+    if (!formData.couple_phone.trim()) {
+      errors.couple_phone = 'WhatsApp da segunda pessoa é obrigatório';
+    } else if (!validatePhone(formData.couple_phone)) {
+      errors.couple_phone = 'WhatsApp deve ter 11 dígitos (DDD + 9 dígitos)';
+    }
+    
+    if (!formData.couple_instagram.trim()) {
+      errors.couple_instagram = 'Instagram da segunda pessoa é obrigatório';
+    }
+    
+    if (!formData.couple_city.trim()) {
+      errors.couple_city = 'Cidade da segunda pessoa é obrigatória';
+    }
+    
+    if (!formData.couple_sector.trim()) {
+      errors.couple_sector = 'Setor da segunda pessoa é obrigatório';
+    }
     
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
@@ -157,12 +204,15 @@ export default function PublicRegister() {
   const handleInputChange = (field: string, value: string) => {
     let processedValue = value;
     
-    if (field === 'phone') {
+    if (field === 'phone' || field === 'couple_phone') {
       processedValue = formatPhone(value);
-    } else if (field === 'instagram' && value && !value.startsWith('@')) {
+    } else if ((field === 'instagram' || field === 'couple_instagram') && value && !value.startsWith('@')) {
       processedValue = '@' + value;
-    } else if (field === 'name') {
+    } else if (field === 'name' || field === 'couple_name') {
       // Permite apenas letras e espaços
+      processedValue = value.replace(/[^a-zA-ZÀ-ÿ\s]/g, '');
+    } else if (field === 'city' || field === 'couple_city') {
+      // Permite apenas letras e espaços para cidade
       processedValue = value.replace(/[^a-zA-ZÀ-ÿ\s]/g, '');
     }
     
@@ -188,7 +238,7 @@ export default function PublicRegister() {
           setReferrerData(result.data.user_data);
           setFormData(prev => ({ 
             ...prev, 
-            referrer: result.data.user_data?.full_name || 'Usuário do Sistema' 
+            referrer: result.data.user_data?.name || 'Usuário do Sistema' 
           }));
           
           // Incrementar contador de cliques quando o link for acessado
@@ -302,14 +352,14 @@ export default function PublicRegister() {
       return;
     }
 
-    // Continuar com o cadastro do usuário
+    // Continuar com o cadastro do membro
     try {
       // Verificar se usuário já existe antes de salvar
       const userExistsCheck = await checkUserExists(formData.instagram.trim(), formData.phone);
       
       if (userExistsCheck.exists) {
         toast({
-          title: "Usuário já cadastrado",
+          title: "Membro já cadastrado",
           description: userExistsCheck.message,
           variant: "destructive",
         });
@@ -317,38 +367,148 @@ export default function PublicRegister() {
         return;
       }
 
-      // Preparar dados para salvar no banco
-      const userData = {
-        name: formData.name.trim(),
-        phone: formData.phone,
-        instagram: formData.instagram.trim(),
-        city: formData.city,
-        sector: formData.sector,
-        referrer: formData.referrer,
-        registration_date: new Date().toISOString().split('T')[0],
-        status: 'Inativo' as const
-      };
-
-      // 1. Salvar usuário na tabela users
-      const userResult = await addUser(userData);
+      // IDENTIFICAR TIPO DE LINK - Verificar se é para cadastrar membro ou amigo
+      const isFriendRegistration = linkData?.link_type === 'friends';
       
-      if (!userResult.success) {
-        throw new Error(userResult.error || "Erro ao salvar usuário");
+      console.log('🔍 Dados do link:', linkData);
+      console.log('🔍 Tipo de link identificado:', linkData?.link_type);
+      console.log('🔍 É cadastro de amigo?', isFriendRegistration);
+      
+      // Verificar configuração atual do sistema
+      const { data: currentSettings, error: settingsError } = await supabase
+        .from('system_settings')
+        .select('setting_value')
+        .eq('setting_key', 'member_links_type')
+        .single();
+      
+      console.log('🔍 Configuração atual do sistema:', currentSettings?.setting_value);
+      
+      // Se for cadastro de amigo, não verificar limite de membros
+      if (!isFriendRegistration) {
+        // Verificar limite de membros apenas para novos membros
+        const limitCheck = await checkMemberLimit();
+        if (!limitCheck.canRegister) {
+          toast({
+            title: "Limite de membros atingido",
+            description: `O sistema atingiu o limite de ${limitCheck.max} membros. Não é possível cadastrar novos membros no momento.`,
+            variant: "destructive",
+          });
+          setIsLoading(false);
+          return;
+        }
       }
 
-      // 2. Criar credenciais e usuário de autenticação
-      const credentialsResult = await createUserWithCredentials(userData);
-      
-      if (!credentialsResult.success) {
-        throw new Error((credentialsResult as { error: string }).error);
-      }
+      if (isFriendRegistration) {
+        // CADASTRO DE AMIGO (CONTRATO PAGO) - Usar tabela friends
+        console.log('📝 Cadastrando amigo (contrato pago)...');
+        
+        // Preparar dados do amigo para tabela friends
+        const friendData = {
+          name: formData.name.trim(),
+          phone: formData.phone,
+          instagram: formData.instagram.trim(),
+          city: formData.city,
+          sector: formData.sector,
+          referrer: formData.referrer,
+          registration_date: new Date().toISOString().split('T')[0],
+          status: 'Ativo' as const,
+          // Dados da segunda pessoa (obrigatório)
+          couple_name: formData.couple_name.trim(),
+          couple_phone: formData.couple_phone,
+          couple_instagram: formData.couple_instagram.trim(),
+          couple_city: formData.couple_city.trim(),
+          couple_sector: formData.couple_sector.trim(),
+          // Campos obrigatórios para tabela friends
+          member_id: '', // Será preenchido pelo hook
+          deleted_at: null
+        };
 
-      // 3. Sucesso
-      setIsSuccess(true);
-      toast({
-        title: "Cadastro realizado com sucesso!",
-        description: `Cadastro vinculado a ${formData.referrer}. Suas credenciais de acesso foram geradas automaticamente.`,
-      });
+        console.log('📝 Dados do amigo a serem salvos:', friendData);
+
+        // Salvar amigo na tabela friends
+        const friendResult = await addFriend(friendData);
+        
+        if (!friendResult.success) {
+          throw new Error(friendResult.error || "Erro ao salvar amigo");
+        }
+
+        // Sucesso - Amigo cadastrado
+        setIsSuccess(true);
+        toast({
+          title: "Amigo casal cadastrado com sucesso!",
+          description: `Você foi cadastrado como amigo casal por ${formData.referrer}. Este é um contrato pago.`,
+        });
+
+      } else {
+        // CADASTRO DE MEMBRO (NORMAL)
+        console.log('📝 Cadastrando membro...');
+        
+        // Preparar dados para salvar no banco
+        const memberData = {
+          name: formData.name.trim(),
+          phone: formData.phone,
+          instagram: formData.instagram.trim(),
+          city: formData.city,
+          sector: formData.sector,
+          referrer: formData.referrer,
+          registration_date: new Date().toISOString().split('T')[0],
+          status: 'Ativo' as const,
+          // Dados da segunda pessoa (obrigatório)
+          couple_name: formData.couple_name.trim(),
+          couple_phone: formData.couple_phone,
+          couple_instagram: formData.couple_instagram.trim(),
+          couple_city: formData.couple_city.trim(),
+          couple_sector: formData.couple_sector.trim()
+        };
+
+        console.log('📝 Dados do membro a serem salvos:', memberData);
+
+        // 1. Salvar membro na tabela members
+        const memberResult = await addMember(memberData);
+        
+        if (!memberResult.success) {
+          throw new Error(memberResult.error || "Erro ao salvar membro");
+        }
+
+        // 2. Salvar também na tabela users (para compatibilidade)
+        const userData = {
+          name: formData.name.trim(),
+          phone: formData.phone,
+          instagram: formData.instagram.trim(),
+          city: formData.city,
+          sector: formData.sector,
+          referrer: formData.referrer,
+          registration_date: new Date().toISOString().split('T')[0],
+          status: 'Ativo' as const
+        };
+
+        const userResult = await addUser(userData);
+        
+        if (!userResult.success) {
+          console.warn('Aviso: Erro ao salvar na tabela users:', userResult.error);
+        }
+
+        // 3. Criar credenciais compartilhadas para o casal
+        const userDataForCouple = {
+          ...userData,
+          full_name: `${formData.name} e ${formData.couple_name} - Casal`,
+          display_name: `${formData.name} & ${formData.couple_name}`,
+          role: 'Membro'
+        };
+        
+        const credentialsResult = await createUserWithCredentials(userDataForCouple);
+        
+        if (!credentialsResult.success) {
+          throw new Error((credentialsResult as { error: string }).error);
+        }
+
+        // 4. Sucesso - Membro cadastrado
+        setIsSuccess(true);
+        toast({
+          title: "Cadastro realizado com sucesso!",
+          description: `Casal cadastrado e vinculado a ${formData.referrer}. Uma conta compartilhada foi criada para ambos.`,
+        });
+      }
 
     } catch (error) {
       console.error('Erro no cadastro:', error);
@@ -392,11 +552,17 @@ export default function PublicRegister() {
             </h2>
             <div className="bg-institutional-light rounded-lg p-4 mb-4">
               <p className="text-sm text-institutional-blue mb-2">
-                <strong>Suas credenciais de acesso:</strong>
+                <strong>Conta compartilhada do casal:</strong>
             </p>
-              <div className="space-y-2 text-sm">
-                <p><strong>Instagram:</strong> {formData.instagram.replace('@', '')}</p>
-                <p><strong>Senha:</strong> {formData.instagram.replace('@', '')}{formData.phone.slice(-4)}</p>
+              <div className="space-y-3 text-sm">
+                <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
+                  <p className="font-medium text-blue-800 mb-2">👫 Conta Compartilhada</p>
+                  <p className="text-blue-700"><strong>Usuário:</strong> {formData.instagram.replace('@', '')}</p>
+                  <p className="text-blue-700"><strong>Senha:</strong> {formData.instagram.replace('@', '')}{formData.phone.slice(-4)}</p>
+                  <p className="text-blue-600 text-xs mt-2">
+                    Esta conta é compartilhada entre <strong>{formData.name}</strong> e <strong>{formData.couple_name}</strong>
+                  </p>
+                </div>
               </div>
             </div>
             <div className="bg-institutional-light rounded-lg p-4 mb-4">
@@ -404,54 +570,141 @@ export default function PublicRegister() {
                 <strong>Cadastro vinculado a:</strong><br />
                 {formData.referrer}
               </p>
+              {linkData?.link_type === 'friends' && (
+                <p className="text-sm text-green-600 mt-2">
+                  💰 <strong>Contrato Pago:</strong> Você foi cadastrado como amigo casal por um membro com contrato pago.
+                </p>
+              )}
             </div>
             <p className="text-sm text-institutional-blue bg-institutional-light p-3 rounded-lg mb-4">
-              <strong>Como acessar:</strong> Use seu Instagram ({formData.instagram.replace('@', '')}) como usuário e a senha gerada acima para fazer login no sistema. Clique no botão abaixo para entrar.
+              <strong>Como acessar:</strong> {linkData?.link_type === 'friends' 
+                ? 'Este é um cadastro de amigo (contrato pago). O membro responsável receberá as informações de acesso.'
+                : 'Ambos podem usar a mesma conta compartilhada para fazer login no sistema. O casal compartilha o mesmo usuário, senha e link de cadastro. Clique no botão abaixo para entrar.'
+              }
             </p>
             
-            {/* Botão para Entrar no Sistema */}
-            <Button
-              onClick={async () => {
-                try {
-                  const username = formData.instagram.replace('@', '');
-                  const password = `${formData.instagram.replace('@', '')}${formData.phone.slice(-4)}`;
-                  
-                  const result = await login(username, password);
-                  
-                  if (result.success) {
-                    toast({
-                      title: "Login realizado com sucesso!",
-                      description: "Redirecionando para o dashboard...",
-                    });
-                    
-                    // Redirecionar para o dashboard após 1 segundo
-                    setTimeout(() => {
-                      navigate("/dashboard");
-                    }, 1000);
-                  } else {
-                    toast({
-                      title: "Erro no login automático",
-                      description: "Por favor, faça login manualmente.",
-                      variant: "destructive",
-                    });
-                  }
-                } catch (error) {
-                  toast({
-                    title: "Erro no login automático",
-                    description: "Por favor, faça login manualmente.",
-                    variant: "destructive",
-                  });
-                }
-              }}
-              className="w-full h-12 bg-institutional-gold hover:bg-institutional-gold/90 text-institutional-blue font-semibold text-lg rounded-lg transition-all duration-200"
-            >
-              <div className="flex items-center gap-2">
-                <LogIn className="w-5 h-5" />
-                Fazer Login
-              </div>
-            </Button>
+            {/* Botão para Entrar no Sistema - Só aparece para membros */}
+            {linkData?.link_type !== 'friends' && (
+              <Button
+                onClick={() => {
+                  // Definir nome padrão baseado no formulário
+                  const defaultName = `${formData.name} & ${formData.couple_name}`;
+                  setDisplayName(defaultName);
+                  setShowDisplayNameModal(true);
+                }}
+                className="w-full h-12 bg-institutional-gold hover:bg-institutional-gold/90 text-institutional-blue font-semibold text-lg rounded-lg transition-all duration-200"
+              >
+                <div className="flex items-center gap-2">
+                  <LogIn className="w-5 h-5" />
+                  Entrar no Sistema
+                </div>
+              </Button>
+            )}
           </div>
         </div>
+
+        {/* Modal de Nome de Exibição Personalizado */}
+        {showDisplayNameModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg p-6 w-full max-w-md">
+              <h3 className="text-xl font-bold text-institutional-blue mb-4">
+                Como você quer ser chamado?
+              </h3>
+              <p className="text-gray-600 mb-4">
+                Escolha um nome de exibição personalizado para aparecer no sistema:
+              </p>
+              
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Nome de Exibição
+                  </label>
+                  <Input
+                    value={displayName}
+                    onChange={(e) => setDisplayName(e.target.value)}
+                    placeholder="Ex: João & Maria, Casal Silva, etc."
+                    className="w-full"
+                  />
+                </div>
+                
+                <div className="flex gap-3">
+                  <Button
+                    onClick={() => setShowDisplayNameModal(false)}
+                    variant="outline"
+                    className="flex-1"
+                  >
+                    Cancelar
+                  </Button>
+                  <Button
+                    onClick={async () => {
+                      if (!displayName.trim()) {
+                        toast({
+                          title: "Nome obrigatório",
+                          description: "Por favor, digite um nome de exibição.",
+                          variant: "destructive",
+                        });
+                        return;
+                      }
+                      
+                      try {
+                        const username = formData.instagram.replace('@', '');
+                        const password = `${formData.instagram.replace('@', '')}${formData.phone.slice(-4)}`;
+                        
+                        const result = await login(username, password);
+                        
+                        if (result.success) {
+                          // Atualizar nome de exibição no perfil do usuário (se diferente do padrão)
+                          const defaultName = `${formData.name} & ${formData.couple_name}`;
+                          if (displayName.trim() !== defaultName) {
+                            try {
+                              const { error } = await supabase
+                                .from('auth_users')
+                                .update({ display_name: displayName.trim() })
+                                .eq('username', username);
+                              
+                              if (error) {
+                                console.warn('Erro ao atualizar nome de exibição:', error);
+                              }
+                            } catch (updateError) {
+                              console.warn('Erro ao atualizar nome de exibição:', updateError);
+                            }
+                          }
+                          
+                          toast({
+                            title: "Login realizado com sucesso!",
+                            description: `Bem-vindo, ${displayName}! Redirecionando...`,
+                          });
+                          
+                          setShowDisplayNameModal(false);
+                          
+                          // Redirecionar para o dashboard após 1 segundo
+                          setTimeout(() => {
+                            navigate("/dashboard");
+                          }, 1000);
+                        } else {
+                          toast({
+                            title: "Erro no login",
+                            description: "Não foi possível fazer login. Verifique suas credenciais.",
+                            variant: "destructive",
+                          });
+                        }
+                      } catch (error) {
+                        toast({
+                          title: "Erro no login",
+                          description: "Não foi possível fazer login. Verifique suas credenciais.",
+                          variant: "destructive",
+                        });
+                      }
+                    }}
+                    className="flex-1 bg-institutional-gold hover:bg-institutional-gold/90 text-institutional-blue"
+                  >
+                    Confirmar e Entrar
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Rodapé */}
         <div className="text-center text-white text-sm">
@@ -485,10 +738,21 @@ export default function PublicRegister() {
         </div>
         
         <h1 className="text-2xl font-bold text-white mb-2">
-          Cadastre-se no Conectados
+          {linkData?.link_type === 'friends' 
+            ? 'Membro Cadastrando Amigo' 
+            : 'Cadastre-se como Membro Conectado'
+          }
         </h1>
         <p className="text-gray-300">
-          Preencha os dados abaixo para fazer parte da nossa rede
+          {linkData?.link_type === 'friends' ? (
+            <>
+               Você está sendo cadastrado por um membro como amigo. Preencha os dados de ambos (você e sua parceira/parceiro) abaixo.
+            </>
+          ) : (
+            <>
+              
+            </>
+          )}
         </p>
       </div>
 
@@ -594,6 +858,102 @@ export default function PublicRegister() {
           )}
         </div>
 
+        {/* Separador */}
+        <div className="flex items-center gap-4">
+          <div className="flex-1 h-px bg-gray-600"></div>
+          <span className="text-gray-400 text-sm font-medium">Dados da Segunda Pessoa</span>
+          <div className="flex-1 h-px bg-gray-600"></div>
+        </div>
+
+        {/* Campo Nome da Segunda Pessoa */}
+        <div className="space-y-1">
+          <div className="relative">
+            <User className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
+            <Input
+              type="text"
+              placeholder="Nome Completo da Segunda Pessoa (ex: Maria Silva)"
+              value={formData.couple_name}
+              onChange={(e) => handleInputChange('couple_name', e.target.value)}
+              className={`pl-12 h-12 bg-gray-800 border-gray-700 text-white placeholder-gray-400 focus:border-institutional-gold focus:ring-institutional-gold rounded-lg ${formErrors.couple_name ? 'border-red-500' : ''}`}
+              required
+            />
+          </div>
+          {formErrors.couple_name && (
+            <div className="flex items-center gap-1 text-red-400 text-sm">
+              <AlertCircle className="w-4 h-4" />
+              <span>{formErrors.couple_name}</span>
+            </div>
+          )}
+        </div>
+
+        {/* Campo WhatsApp da Segunda Pessoa */}
+        <div className="space-y-1">
+          <div className="relative">
+            <Phone className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
+            <Input
+              type="tel"
+              placeholder="WhatsApp da Segunda Pessoa (62) 99999-9999"
+              value={formData.couple_phone}
+              onChange={(e) => handleInputChange('couple_phone', e.target.value)}
+              className={`pl-12 h-12 bg-gray-800 border-gray-700 text-white placeholder-gray-400 focus:border-institutional-gold focus:ring-institutional-gold rounded-lg ${formErrors.couple_phone ? 'border-red-500' : ''}`}
+              maxLength={15}
+              required
+            />
+          </div>
+          {formErrors.couple_phone && (
+            <div className="flex items-center gap-1 text-red-400 text-sm">
+              <AlertCircle className="w-4 h-4" />
+              <span>{formErrors.couple_phone}</span>
+            </div>
+          )}
+        </div>
+
+        {/* Campo Cidade da Segunda Pessoa - AUTCOMPLETE */}
+        <div className="space-y-1">
+          <Autocomplete
+            value={formData.couple_city}
+            onChange={(value) => handleInputChange('couple_city', value)}
+            placeholder="Digite a cidade..."
+            icon={<Building className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />}
+            type="city"
+            error={formErrors.couple_city}
+          />
+        </div>
+
+        {/* Campo Setor da Segunda Pessoa - AUTCOMPLETE */}
+        <div className="space-y-1">
+          <Autocomplete
+            value={formData.couple_sector}
+            onChange={(value) => handleInputChange('couple_sector', value)}
+            placeholder="Digite o setor..."
+            icon={<MapPin className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />}
+            type="sector"
+            cityValue={formData.couple_city}
+            error={formErrors.couple_sector}
+          />
+        </div>
+
+        {/* Campo Instagram da Segunda Pessoa */}
+        <div className="space-y-1">
+          <div className="relative">
+            <Instagram className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
+            <Input
+              type="text"
+              placeholder="Instagram da Segunda Pessoa (@seuusuario)"
+              value={formData.couple_instagram}
+              onChange={(e) => handleInputChange('couple_instagram', e.target.value.replace('@', ''))}
+              className={`pl-12 h-12 bg-gray-800 border-gray-700 text-white placeholder-gray-400 focus:border-institutional-gold focus:ring-institutional-gold rounded-lg ${formErrors.couple_instagram ? 'border-red-500' : ''}`}
+              required
+            />
+          </div>
+          {formErrors.couple_instagram && (
+            <div className="flex items-center gap-1 text-red-400 text-sm">
+              <AlertCircle className="w-4 h-4" />
+              <span>{formErrors.couple_instagram}</span>
+            </div>
+          )}
+        </div>
+
         {/* Campo Nome da pessoa que indicou (readonly) */}
         <div className="relative">
           <User className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -627,11 +987,7 @@ export default function PublicRegister() {
         </Button>
 
         {/* Informação adicional */}
-        <div className="mt-6 p-4 bg-gray-800/50 rounded-lg border border-gray-700">
-          <p className="text-xs text-gray-300">
-            <strong>Após o cadastro:</strong> Suas credenciais de acesso serão geradas automaticamente e exibidas na tela de sucesso. Você poderá acessar o sistema e gerar seus próprios links de cadastro.
-          </p>
-        </div>
+       
       </div>
 
       {/* Rodapé */}

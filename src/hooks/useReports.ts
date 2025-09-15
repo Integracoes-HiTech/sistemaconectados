@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
 
-interface User {
+interface Member {
   id: string
   name: string
   city: string
@@ -11,6 +11,17 @@ interface User {
   registration_date: string
   created_at: string
   referrer?: string
+  // Campos específicos da tabela members
+  couple_name?: string
+  couple_phone?: string
+  couple_instagram?: string
+  couple_city?: string
+  couple_sector?: string
+  contracts_completed?: number
+  ranking_position?: number
+  ranking_status?: string
+  is_friend?: boolean
+  deleted_at?: string | null
 }
 
 export interface ReportData {
@@ -44,24 +55,24 @@ export const useReports = (referrer?: string) => {
       setLoading(true)
       setError(null)
 
-      // Query base para usuários
-      let query = supabase.from('users').select('*')
+      // Query base para membros (tabela principal atual)
+      let query = supabase.from('members').select('*').is('deleted_at', null)
       
       if (referrer) {
         query = query.eq('referrer', referrer)
       }
 
-      const { data: users, error } = await query
+      const { data: members, error } = await query
 
       if (error) throw error
 
-      // Calcular dados para relatórios
-      const usersByLocation = calculateUsersByLocation(users || [])
-      const registrationsByDay = calculateRegistrationsByDay(users || [])
-      const usersByStatus = calculateUsersByStatus(users || [])
-      const recentActivity = calculateRecentActivity(users || [])
-      const sectorsByCity = calculateSectorsByCity(users || [])
-      const usersByCity = calculateUsersByCity(users || [])
+      // Calcular dados para relatórios usando membros
+      const usersByLocation = calculateUsersByLocation(members || [])
+      const registrationsByDay = calculateRegistrationsByDay(members || [])
+      const usersByStatus = calculateUsersByStatus(members || [])
+      const recentActivity = calculateRecentActivity(members || [])
+      const sectorsByCity = calculateSectorsByCity(members || [])
+      const usersByCity = calculateUsersByCity(members || [])
 
       setReportData({
         usersByLocation,
@@ -93,20 +104,20 @@ export const useReports = (referrer?: string) => {
   }, [fetchReportData])
 
 
-  const calculateUsersByLocation = (users: User[]) => {
-    return users.reduce((acc, user) => {
-      const location = `${user.city} - ${user.sector}`
+  const calculateUsersByLocation = (members: Member[]) => {
+    return members.reduce((acc, member) => {
+      const location = `${member.city} - ${member.sector}`
       acc[location] = (acc[location] || 0) + 1
       return acc
     }, {} as Record<string, number>)
   }
 
-  const calculateSectorsByCity = (users: User[]) => {
-    const sectorsByCity = users.reduce((acc, user) => {
-      if (!acc[user.city]) {
-        acc[user.city] = new Set()
+  const calculateSectorsByCity = (members: Member[]) => {
+    const sectorsByCity = members.reduce((acc, member) => {
+      if (!acc[member.city]) {
+        acc[member.city] = new Set()
       }
-      acc[user.city].add(user.sector)
+      acc[member.city].add(member.sector)
       return acc
     }, {} as Record<string, Set<string>>)
 
@@ -118,14 +129,14 @@ export const useReports = (referrer?: string) => {
     return result
   }
 
-  const calculateUsersByCity = (users: User[]) => {
-    return users.reduce((acc, user) => {
-      acc[user.city] = (acc[user.city] || 0) + 1
+  const calculateUsersByCity = (members: Member[]) => {
+    return members.reduce((acc, member) => {
+      acc[member.city] = (acc[member.city] || 0) + 1
       return acc
     }, {} as Record<string, number>)
   }
 
-  const calculateRegistrationsByDay = (users: User[]) => {
+  const calculateRegistrationsByDay = (members: Member[]) => {
     const registrationsByDay = []
     
     // Últimos 7 dias
@@ -134,7 +145,7 @@ export const useReports = (referrer?: string) => {
       date.setDate(date.getDate() - i)
       const dateStr = date.toISOString().split('T')[0]
       
-      const quantidade = users.filter(user => user.registration_date === dateStr).length
+      const quantidade = members.filter(member => member.registration_date === dateStr).length
       registrationsByDay.push({
         date: date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }),
         quantidade
@@ -144,25 +155,25 @@ export const useReports = (referrer?: string) => {
     return registrationsByDay
   }
 
-  const calculateUsersByStatus = (users: User[]) => {
-    const activeUsers = users.filter(user => user.status === 'Ativo').length
-    const inactiveUsers = users.filter(user => user.status === 'Inativo').length
+  const calculateUsersByStatus = (members: Member[]) => {
+    const activeMembers = members.filter(member => member.status === 'Ativo').length
+    const inactiveMembers = members.filter(member => member.status === 'Inativo').length
     
     return [
-      { name: "Ativos no Sistema", value: activeUsers, color: "#10B981" },
-      { name: "Inativos no Sistema", value: inactiveUsers, color: "#EF4444" }
+      { name: "Ativos no Sistema", value: activeMembers, color: "#10B981" },
+      { name: "Inativos no Sistema", value: inactiveMembers, color: "#EF4444" }
     ]
   }
 
-  const calculateRecentActivity = (users: User[]) => {
-    return users
+  const calculateRecentActivity = (members: Member[]) => {
+    return members
       .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
       .slice(0, 10)
-      .map(user => ({
-        id: user.id,
-        name: user.name,
+      .map(member => ({
+        id: member.id,
+        name: member.name,
         action: 'Cadastro realizado',
-        date: new Date(user.created_at).toLocaleDateString('pt-BR')
+        date: new Date(member.created_at).toLocaleDateString('pt-BR')
       }))
   }
 

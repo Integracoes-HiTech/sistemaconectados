@@ -86,6 +86,7 @@ export const Autocomplete = React.forwardRef<AutocompleteRef, AutocompleteProps>
         }
 
       } else if (type === 'sector' && cityValue) {
+        console.log('🔍 Buscando setores para cidade:', cityValue, 'query:', query);
         const { data, error } = await supabase
           .from('sectors')
           .select(`
@@ -98,12 +99,15 @@ export const Autocomplete = React.forwardRef<AutocompleteRef, AutocompleteProps>
           .order('name')
           .limit(10);
 
+        console.log('🔍 Resultado da busca de setores:', { data, error });
         if (!error && data) {
           suggestions = data.map((item: { id: string; name: string }) => ({
             id: item.id,
             name: item.name
           }));
         }
+      } else if (type === 'sector' && !cityValue) {
+        console.log('⚠️ Tentando buscar setores sem cidade definida');
       }
 
       setSuggestions(suggestions);

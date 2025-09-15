@@ -38,7 +38,7 @@ export const useAuth = () => {
     try {
       const { data, error } = await supabase
         .from('auth_users')
-        .select('id, username, role, is_active')
+        .select('id, username, role, is_active, display_name')
         .eq('id', userData.id)
         .eq('username', userData.username)
         .single()
@@ -51,9 +51,13 @@ export const useAuth = () => {
       }
 
       // Atualizar dados do usuário se necessário
-      if (data.role !== userData.role) {
-        console.log('🔄 Role atualizado, sincronizando...')
-        const updatedUser = { ...userData, role: data.role }
+      if (data.role !== userData.role || data.display_name !== userData.display_name) {
+        console.log('🔄 Dados atualizados, sincronizando...')
+        const updatedUser = { 
+          ...userData, 
+          role: data.role,
+          display_name: data.display_name
+        }
         setUser(updatedUser)
         localStorage.setItem('loggedUser', JSON.stringify(updatedUser))
       } else {
@@ -108,6 +112,7 @@ export const useAuth = () => {
           name: data.name,
           role: data.role,
           full_name: data.full_name,
+          display_name: data.display_name,
           created_at: data.created_at,
           updated_at: data.updated_at
         }
@@ -117,7 +122,7 @@ export const useAuth = () => {
         
         toast({
           title: "Login realizado com sucesso!",
-          description: `Bem-vindo, ${data.name}!`,
+          description: `Bem-vindo, ${data.display_name || data.name}!`,
         })
 
         return { success: true, user: userData }
