@@ -621,38 +621,55 @@ export default function Dashboard() {
         {/* Gráficos de Estatísticas - Segunda Linha (Apenas Administradores) */}
         {isAdmin() && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          {/* Gráfico de Barras - Setores por Cidade */}
+          {/* Gráfico de Setores Agrupados por Cidade */}
           <Card className="shadow-[var(--shadow-card)]">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-institutional-blue">
                 <MapPin className="w-5 h-5" />
-                Membros por Setor
+                Setores por Cidade
               </CardTitle>
               <CardDescription>
-                Quantidade de Pessoas cadastrados em cada setor
+                Setores disponíveis em cada cidade
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={Object.entries(reportData.usersByLocation).map(([location, count]) => {
-                  const [city, sector] = location.split(' - ');
-                  return { setor: sector, quantidade: count };
-                }).reduce((acc, item) => {
-                  const existing = acc.find(x => x.setor === item.setor);
-                  if (existing) {
-                    existing.quantidade += item.quantidade;
-                  } else {
-                    acc.push(item);
-                  }
-                  return acc;
-                }, [] as { setor: string; quantidade: number }[])}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="setor" angle={-45} textAnchor="end" height={80} />
-                  <YAxis />
-                  <Tooltip />
-                  <Bar dataKey="quantidade" fill="#8B5CF6" />
-                </BarChart>
-              </ResponsiveContainer>
+              <div className="space-y-4 max-h-80 overflow-y-auto">
+                {Object.entries(reportData.sectorsGroupedByCity)
+                  .sort(([, a], [, b]) => b.count - a.count)
+                  .map(([city, data]) => (
+                    <div key={city} className="border-l-4 border-institutional-gold pl-4 py-2 bg-gray-50 rounded-r-lg">
+                      <div className="flex justify-between items-center mb-2">
+                        <h4 className="font-semibold text-institutional-blue text-lg">
+                          {city}
+                        </h4>
+                        <div className="text-sm text-gray-600">
+                          <span className="bg-institutional-gold text-white px-2 py-1 rounded-full text-xs mr-2">
+                            {data.totalSectors} setores
+                          </span>
+                          <span className="bg-institutional-blue text-white px-2 py-1 rounded-full text-xs">
+                            {data.count} membros
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {data.sectors.map((sector, index) => (
+                          <span
+                            key={index}
+                            className="inline-block bg-white text-gray-700 px-3 py-1 rounded-full text-sm border border-gray-200 hover:bg-institutional-light transition-colors"
+                          >
+                            {sector}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                {Object.keys(reportData.sectorsGroupedByCity).length === 0 && (
+                  <div className="text-center py-8 text-gray-500">
+                    <MapPin className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+                    <p>Nenhum dado de setores por cidade encontrado</p>
+                  </div>
+                )}
+              </div>
             </CardContent>
           </Card>
 

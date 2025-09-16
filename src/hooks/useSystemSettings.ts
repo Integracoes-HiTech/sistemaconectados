@@ -215,26 +215,151 @@ export const useSystemSettings = () => {
 
   const updateMemberLinksType = async (linkType: 'members' | 'friends') => {
     try {
+      console.log('🚀 NOVA VERSÃO DA FUNÇÃO updateMemberLinksType INICIADA!');
       console.log('🔍 updateMemberLinksType chamada com:', linkType);
+      console.log('🔍 Tipo de link recebido:', typeof linkType, linkType);
+      console.log('🔍 Timestamp:', new Date().toISOString());
+      console.log('🔍 Versão da função: 2.0 - COM LOGS DETALHADOS');
       
+      // 1. Verificar configuração atual antes de alterar
+      console.log('📋 Verificando configuração atual...');
+      const { data: currentSettings, error: fetchError } = await supabase
+        .from('system_settings')
+        .select('setting_value')
+        .eq('setting_key', 'member_links_type')
+        .single();
+
+      if (fetchError) {
+        console.error('❌ Erro ao buscar configuração atual:', fetchError);
+        throw fetchError;
+      }
+
+      console.log('📋 Configuração atual:', currentSettings?.setting_value);
+      console.log('📋 Nova configuração:', linkType);
+      
+      // 2. Atualizar configuração do sistema
+      console.log('🔄 Atualizando configuração do sistema...');
       const { error } = await supabase
         .from('system_settings')
         .update({ setting_value: linkType })
         .eq('setting_key', 'member_links_type')
 
       if (error) {
-        console.error('❌ Erro na atualização:', error);
+        console.error('❌ Erro na atualização da configuração:', error);
         throw error;
       }
 
-      console.log('✅ Tipo de links atualizado com sucesso');
+      console.log('✅ Configuração do sistema atualizada');
+
+      // 3. Buscar UUID do admin
+      console.log('👑 Buscando UUID do admin...');
+      const { data: adminUser, error: adminError } = await supabase
+        .from('auth_users')
+        .select('id, username, full_name')
+        .eq('username', 'admin')
+        .single();
+
+      if (adminError) {
+        console.error('❌ Erro ao buscar admin:', adminError);
+        throw adminError;
+      }
+
+      const adminId = adminUser?.id;
+      console.log('👑 Admin encontrado:', {
+        id: adminId,
+        username: adminUser?.username,
+        full_name: adminUser?.full_name
+      });
+
+      // 4. Verificar links existentes antes de atualizar
+      console.log('📊 Verificando links existentes...');
+      const { data: existingLinks, error: linksFetchError } = await supabase
+        .from('user_links')
+        .select('id, user_id, link_type')
+        .neq('user_id', adminId);
+
+      if (linksFetchError) {
+        console.error('❌ Erro ao buscar links existentes:', linksFetchError);
+        throw linksFetchError;
+      }
+
+      console.log('📊 Links existentes (exceto admin):', existingLinks?.length || 0);
+      console.log('📊 Links por tipo:', existingLinks?.reduce((acc, link) => {
+        acc[link.link_type] = (acc[link.link_type] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>));
+
+      // 5. Se mudando para 'friends', atualizar links existentes (exceto admin)
+      if (linkType === 'friends') {
+        console.log('🔄 Atualizando links existentes para friends (exceto admin)...');
+        
+        const { data: updateResult, error: linksError } = await supabase
+          .from('user_links')
+          .update({ 
+            link_type: 'friends',
+            updated_at: new Date().toISOString()
+          })
+          .eq('link_type', 'members')
+          .neq('user_id', adminId) // Excluir admin
+          .select('id, user_id, link_type');
+
+        if (linksError) {
+          console.error('❌ Erro ao atualizar links existentes:', linksError);
+          throw linksError;
+        }
+
+        console.log('✅ Links atualizados para friends:', updateResult?.length || 0);
+        console.log('📊 Resultado da atualização:', updateResult);
+      }
+
+      // 6. Se mudando para 'members', atualizar links existentes (exceto admin)
+      if (linkType === 'members') {
+        console.log('🔄 Atualizando links existentes para members (exceto admin)...');
+        
+        const { data: updateResult, error: linksError } = await supabase
+          .from('user_links')
+          .update({ 
+            link_type: 'members',
+            updated_at: new Date().toISOString()
+          })
+          .eq('link_type', 'friends')
+          .neq('user_id', adminId) // Excluir admin
+          .select('id, user_id, link_type');
+
+        if (linksError) {
+          console.error('❌ Erro ao atualizar links existentes:', linksError);
+          throw linksError;
+        }
+
+        console.log('✅ Links atualizados para members:', updateResult?.length || 0);
+        console.log('📊 Resultado da atualização:', updateResult);
+      }
+      
+      // 7. Verificar resultado final
+      console.log('🔍 Verificando resultado final...');
+      const { data: finalLinks, error: finalError } = await supabase
+        .from('user_links')
+        .select('id, user_id, link_type')
+        .neq('user_id', adminId);
+
+      if (finalError) {
+        console.error('❌ Erro ao verificar resultado final:', finalError);
+      } else {
+        console.log('📊 Links finais (exceto admin):', finalLinks?.length || 0);
+        console.log('📊 Links finais por tipo:', finalLinks?.reduce((acc, link) => {
+          acc[link.link_type] = (acc[link.link_type] || 0) + 1;
+          return acc;
+        }, {} as Record<string, number>));
+      }
       
       // Recarregar configurações
+      console.log('🔄 Recarregando configurações...');
       await fetchSettings()
       
+      console.log('✅ updateMemberLinksType concluída com sucesso!');
       return { success: true }
     } catch (err) {
-      console.error('❌ Erro geral:', err);
+      console.error('❌ Erro geral no updateMemberLinksType:', err);
       return { 
         success: false, 
         error: err instanceof Error ? err.message : 'Erro ao atualizar tipo de links' 

@@ -71,23 +71,27 @@ export default function Settings() {
   const handleUpdateLinkType = async (linkType: 'members' | 'friends') => {
     try {
       setIsUpdating(true);
-      console.log('🔍 Alterando tipo de links para:', linkType);
+      console.log('🔍 Settings: Alterando tipo de links para:', linkType);
+      console.log('🔍 Settings: Tipo recebido:', typeof linkType, linkType);
+      console.log('🔍 Settings: Configuração atual:', settings?.member_links_type);
       
       const result = await updateMemberLinksType(linkType);
+      
+      console.log('🔍 Settings: Resultado da função:', result);
       
       if (result.success) {
         toast({
           title: "Configuração atualizada!",
-          description: `Tipo de links alterado para: ${linkType === 'members' ? 'Novos Membros' : 'Contratos Pagos'}`,
+          description: `Tipo de links alterado para: ${linkType === 'members' ? 'Novos Membros' : 'Contratos Pagos'}. Links existentes também foram atualizados (exceto admin).`,
         });
-        console.log('✅ Tipo de links atualizado com sucesso');
+        console.log('✅ Settings: Tipo de links atualizado com sucesso');
       } else {
         toast({
           title: "Erro ao atualizar",
           description: result.error || "Não foi possível alterar o tipo de links",
           variant: "destructive",
         });
-        console.error('❌ Erro ao atualizar tipo de links:', result.error);
+        console.error('❌ Settings: Erro ao atualizar tipo de links:', result.error);
       }
     } catch (err) {
       toast({
@@ -95,7 +99,7 @@ export default function Settings() {
         description: "Ocorreu um erro inesperado",
         variant: "destructive",
       });
-      console.error('❌ Erro inesperado:', err);
+      console.error('❌ Settings: Erro inesperado:', err);
     } finally {
       setIsUpdating(false);
     }

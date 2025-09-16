@@ -35,6 +35,7 @@ export interface ReportData {
     date: string
   }>
   sectorsByCity: Record<string, number>
+  sectorsGroupedByCity: Record<string, { sectors: string[]; count: number; totalSectors: number }>
   usersByCity: Record<string, number>
 }
 
@@ -45,6 +46,7 @@ export const useReports = (referrer?: string) => {
     usersByStatus: [],
     recentActivity: [],
     sectorsByCity: {},
+    sectorsGroupedByCity: {},
     usersByCity: {}
   })
   const [loading, setLoading] = useState(true)
@@ -72,6 +74,7 @@ export const useReports = (referrer?: string) => {
       const usersByStatus = calculateUsersByStatus(members || [])
       const recentActivity = calculateRecentActivity(members || [])
       const sectorsByCity = calculateSectorsByCity(members || [])
+      const sectorsGroupedByCity = calculateSectorsGroupedByCity(members || [])
       const usersByCity = calculateUsersByCity(members || [])
 
       setReportData({
@@ -80,6 +83,7 @@ export const useReports = (referrer?: string) => {
         usersByStatus,
         recentActivity,
         sectorsByCity,
+        sectorsGroupedByCity,
         usersByCity
       })
     } catch (err) {
@@ -97,6 +101,7 @@ export const useReports = (referrer?: string) => {
       usersByStatus: [],
       recentActivity: [],
       sectorsByCity: {},
+      sectorsGroupedByCity: {},
       usersByCity: {}
     })
     setError(null)
@@ -125,6 +130,32 @@ export const useReports = (referrer?: string) => {
     const result: Record<string, number> = {}
     for (const city in sectorsByCity) {
       result[city] = sectorsByCity[city].size
+    }
+    return result
+  }
+
+  // Nova função para agrupar setores por cidade com nomes dos setores
+  const calculateSectorsGroupedByCity = (members: Member[]) => {
+    const sectorsByCity = members.reduce((acc, member) => {
+      if (!acc[member.city]) {
+        acc[member.city] = {
+          sectors: new Set(),
+          count: 0
+        }
+      }
+      acc[member.city].sectors.add(member.sector)
+      acc[member.city].count += 1
+      return acc
+    }, {} as Record<string, { sectors: Set<string>; count: number }>)
+
+    // Converter para formato final
+    const result: Record<string, { sectors: string[]; count: number; totalSectors: number }> = {}
+    for (const city in sectorsByCity) {
+      result[city] = {
+        sectors: Array.from(sectorsByCity[city].sectors).sort(),
+        count: sectorsByCity[city].count,
+        totalSectors: sectorsByCity[city].sectors.size
+      }
     }
     return result
   }
