@@ -69,12 +69,35 @@ export const useExportReports = () => {
         throw new Error('Nenhum dado para exportar')
       }
 
-      const worksheet = XLSX.utils.json_to_sheet(data)
-      const workbook = XLSX.utils.book_new()
-      XLSX.utils.book_append_sheet(workbook, worksheet, sheetName)
-      
-      console.log('✅ Excel criado, salvando arquivo:', filename)
-      XLSX.writeFile(workbook, filename)
+      // Para grandes volumes (>10.000 registros), usar processamento em chunks
+      if (data.length > 10000) {
+        console.log('📊 Processando grande volume de dados em chunks...')
+        
+        const chunkSize = 5000
+        const chunks = []
+        
+        for (let i = 0; i < data.length; i += chunkSize) {
+          chunks.push(data.slice(i, i + chunkSize))
+        }
+        
+        const workbook = XLSX.utils.book_new()
+        
+        chunks.forEach((chunk, index) => {
+          const worksheet = XLSX.utils.json_to_sheet(chunk)
+          const sheetNameChunk = chunks.length > 1 ? `${sheetName} - Parte ${index + 1}` : sheetName
+          XLSX.utils.book_append_sheet(workbook, worksheet, sheetNameChunk)
+        })
+        
+        console.log('✅ Excel criado com múltiplas abas, salvando arquivo:', filename)
+        XLSX.writeFile(workbook, filename)
+      } else {
+        const worksheet = XLSX.utils.json_to_sheet(data)
+        const workbook = XLSX.utils.book_new()
+        XLSX.utils.book_append_sheet(workbook, worksheet, sheetName)
+        
+        console.log('✅ Excel criado, salvando arquivo:', filename)
+        XLSX.writeFile(workbook, filename)
+      }
       
       console.log('✅ Excel exportado com sucesso!')
     } catch (error) {
@@ -85,6 +108,8 @@ export const useExportReports = () => {
 
   // Exportar membros para Excel
   const exportMembersToExcel = useCallback((members: any[]) => {
+    console.log(`📊 Exportando ${members.length} membros (limite máximo: 1.500)`)
+    
     const data = members.map(member => ({
       'Posição': member.ranking_position || 'N/A',
       'Nome': member.name,
@@ -141,6 +166,8 @@ export const useExportReports = () => {
 
   // Exportar amigos para Excel
   const exportFriendsToExcel = useCallback((friends: any[]) => {
+    console.log(`📊 Exportando ${friends.length} amigos (limite máximo: 22.500)`)
+    
     const data = friends.map(friend => ({
       'Posição': friend.calculated_position || friend.ranking_position || 'N/A',
       'Nome': friend.name,

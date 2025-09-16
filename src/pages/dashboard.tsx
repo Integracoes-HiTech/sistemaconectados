@@ -59,7 +59,7 @@ export default function Dashboard() {
   // Estados de paginação
   const [membersCurrentPage, setMembersCurrentPage] = useState(1);
   const [friendsCurrentPage, setFriendsCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(20); // 20 itens por página
+  const [itemsPerPage] = useState(50); // 50 itens por página para melhor performance com grandes volumes
   const { toast } = useToast();
   const navigate = useNavigate();
   const { user, logout, isAdmin, isMembro, isAmigo, isConvidado, canViewAllUsers, canViewOwnUsers, canViewStats, canGenerateLinks } = useAuth();
@@ -1007,10 +1007,11 @@ export default function Dashboard() {
                   size="sm"
                   onClick={async () => {
                     try {
+                      // Exportar TODOS os membros filtrados, não apenas os da página atual
                       await exportMembersToExcel(filteredMembers);
                       toast({
                         title: "✅ Excel exportado",
-                        description: "Arquivo Excel dos membros foi baixado com sucesso!",
+                        description: `Arquivo Excel com ${filteredMembers.length} membros foi baixado com sucesso!`,
                       });
                     } catch (error) {
                       toast({
@@ -1261,6 +1262,7 @@ export default function Dashboard() {
             <div className="flex items-center justify-between mt-6 px-4">
               <div className="text-sm text-muted-foreground">
                 Mostrando {((membersCurrentPage - 1) * itemsPerPage) + 1} a {Math.min(membersCurrentPage * itemsPerPage, filteredMembers.length)} de {filteredMembers.length} membros
+                <span className="ml-2 text-blue-600 font-medium">(Limite máximo: 1.500)</span>
               </div>
               
               <div className="flex items-center gap-2">
@@ -1387,10 +1389,11 @@ export default function Dashboard() {
                 size="sm"
                 onClick={async () => {
                   try {
+                    // Exportar TODOS os amigos filtrados, não apenas os da página atual
                     await exportFriendsToExcel(filteredFriends);
                     toast({
                       title: "✅ Excel exportado",
-                      description: "Arquivo Excel dos amigos foi baixado com sucesso!",
+                      description: `Arquivo Excel com ${filteredFriends.length} amigos foi baixado com sucesso!`,
                     });
                   } catch (error) {
                     toast({
@@ -1571,6 +1574,7 @@ export default function Dashboard() {
               <div className="flex items-center justify-between mt-6 px-4">
                 <div className="text-sm text-muted-foreground">
                   Mostrando {((friendsCurrentPage - 1) * itemsPerPage) + 1} a {Math.min(friendsCurrentPage * itemsPerPage, filteredFriends.length)} de {filteredFriends.length} amigos
+                  <span className="ml-2 text-blue-600 font-medium">(Limite máximo: 22.500)</span>
                 </div>
                 
                 <div className="flex items-center gap-2">
