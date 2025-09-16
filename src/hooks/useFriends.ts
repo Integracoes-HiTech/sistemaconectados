@@ -71,7 +71,7 @@ export const useFriends = () => {
       console.log('🔍 Buscando membro referrer:', friendData.referrer);
       
       // Primeiro tentar busca exata
-      let { data: membersData, error: memberError } = await supabase
+      const { data: membersData, error: memberError } = await supabase
         .from('members')
         .select('id, name')
         .eq('name', friendData.referrer)
@@ -312,6 +312,18 @@ export const useFriends = () => {
     try {
       console.log('🗑️ Executando soft delete do amigo:', friendId);
       
+      // Buscar dados do amigo antes de deletar
+      const { data: friendData, error: fetchError } = await supabase
+        .from('friends')
+        .select('referrer')
+        .eq('id', friendId)
+        .single();
+
+      if (fetchError) {
+        console.error('❌ Erro ao buscar dados do amigo:', fetchError);
+        throw fetchError;
+      }
+
       const { data, error } = await supabase
         .from('friends')
         .update({ 
@@ -329,6 +341,12 @@ export const useFriends = () => {
 
       console.log('✅ Soft delete executado com sucesso:', data);
 
+      // Atualizar contadores do membro referrer
+      if (friendData?.referrer) {
+        console.log('🔄 Atualizando contadores após exclusão do amigo:', friendData.referrer);
+        await updateMemberCountersAfterDelete(friendData.referrer);
+      }
+
       // Recarregar dados após exclusão
       await fetchFriends();
 
@@ -339,6 +357,152 @@ export const useFriends = () => {
         success: false, 
         error: err instanceof Error ? err.message : 'Erro ao excluir amigo' 
       };
+    }
+  }
+
+  // Função para atualizar contadores do membro após exclusão de amigo
+  const updateMemberCountersAfterDelete = async (referrerName: string) => {
+    try {
+      console.log('🔄 Atualizando contadores após exclusão:', referrerName);
+      
+      // Buscar o membro referrer
+      const { data: referrerMembers, error: referrerError } = await supabase
+        .from('members')
+        .select('id, name, contracts_completed')
+        .eq('name', referrerName)
+        .eq('status', 'Ativo')
+        .is('deleted_at', null);
+
+      const referrerMember = referrerMembers?.[0];
+
+      if (referrerError) {
+        console.error('❌ Erro ao buscar referrer:', referrerError);
+        return;
+      }
+
+      if (!referrerMember) {
+        console.warn('⚠️ Referrer não encontrado:', referrerName);
+        return;
+      }
+
+      // Contar amigos ativos cadastrados por este membro
+      const { data: friendsData, error: friendsError } = await supabase
+        .from('friends')
+        .select('id')
+        .eq('referrer', referrerName)
+        .eq('status', 'Ativo')
+        .is('deleted_at', null);
+
+      if (friendsError) {
+        console.error('❌ Erro ao contar amigos:', friendsError);
+        return;
+      }
+
+      const friendsCount = friendsData?.length || 0;
+      const currentContracts = referrerMember.contracts_completed;
+
+      console.log(`📊 Contratos atuais: ${currentContracts}, Amigos ativos: ${friendsCount}`);
+
+      // Atualizar contracts_completed
+      console.log(`📉 Atualizando contratos após exclusão: ${currentContracts} → ${friendsCount}`);
+      
+      const { error: updateError } = await supabase
+        .from('members')
+        .update({ 
+          contracts_completed: friendsCount,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', referrerMember.id);
+
+      if (updateError) {
+        console.error('❌ Erro ao atualizar contratos do membro:', updateError);
+        return;
+      }
+
+      // Atualizar ranking e status
+      await updateMemberRankingAndStatus(referrerMember.id, friendsCount);
+      
+      console.log('✅ Contadores do membro atualizados após exclusão');
+
+    } catch (err) {
+      console.error('❌ Erro ao atualizar contadores após exclusão:', err);
+    }
+  }
+
+  // Função para atualizar ranking e status do membro
+  const updateMemberRankingAndStatus = async (memberId: string, contractsCount: number) => {
+    try {
+      console.log('🔄 Atualizando ranking e status do membro:', memberId, 'Contratos:', contractsCount);
+      
+      // Calcular status baseado no número de contratos
+      let rankingStatus = 'Vermelho';
+      if (contractsCount >= 15) {
+        rankingStatus = 'Verde';
+      } else if (contractsCount >= 1) {
+        rankingStatus = 'Amarelo';
+      }
+
+      // Atualizar status do membro
+      const { error: statusError } = await supabase
+        .from('members')
+        .update({ 
+          ranking_status: rankingStatus,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', memberId);
+
+      if (statusError) {
+        console.error('❌ Erro ao atualizar status do membro:', statusError);
+      }
+
+      // Atualizar ranking de todos os membros
+      await updateAllMembersRanking();
+
+    } catch (err) {
+      console.error('❌ Erro ao atualizar ranking e status:', err);
+    }
+  }
+
+  // Função para atualizar ranking de todos os membros
+  const updateAllMembersRanking = async () => {
+    try {
+      console.log('🔄 Atualizando ranking de todos os membros...');
+      
+      // Buscar todos os membros ordenados por contratos
+      const { data: membersData, error: fetchError } = await supabase
+        .from('members')
+        .select('id, contracts_completed, created_at')
+        .eq('status', 'Ativo')
+        .is('deleted_at', null)
+        .order('contracts_completed', { ascending: false })
+        .order('created_at', { ascending: true });
+
+      if (fetchError) {
+        console.error('❌ Erro ao buscar membros para ranking:', fetchError);
+        return;
+      }
+
+      // Atualizar ranking_position de cada membro
+      for (let i = 0; i < membersData.length; i++) {
+        const member = membersData[i];
+        const { error: updateError } = await supabase
+          .from('members')
+          .update({ 
+            ranking_position: i + 1,
+            is_top_1500: i < 10,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', member.id);
+
+        if (updateError) {
+          console.error('❌ Erro ao atualizar ranking do membro:', updateError);
+        }
+      }
+
+      console.log('✅ Ranking de todos os membros atualizado');
+
+    } catch (err) {
+      console.error('❌ Erro ao atualizar ranking geral:', err);
     }
   }
 

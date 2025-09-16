@@ -185,16 +185,19 @@ export const useUserLinks = (userId?: string) => {
   // Função para incrementar contador de cliques
   const incrementClickCount = async (linkId: string) => {
     try {
-      // Primeiro buscar o valor atual do click_count
+      console.log('🔍 Incrementando contador de cliques para link:', linkId);
+      
+      // Buscar dados atuais do link
       const { data: currentData, error: fetchError } = await supabase
         .from('user_links')
-        .select('click_count')
+        .select('click_count, user_id, referrer_name, link_type')
         .eq('link_id', linkId)
         .eq('is_active', true)
         .single()
 
       if (fetchError) throw fetchError
 
+      // Incrementar contador de cliques
       const { data, error } = await supabase
         .from('user_links')
         .update({ 
@@ -212,16 +215,23 @@ export const useUserLinks = (userId?: string) => {
         setUserLinks(prev => prev.map(link => 
           link.link_id === linkId ? { ...link, click_count: link.click_count + 1 } : link
         ))
+
+        // Log do tipo de link para debug
+        if (currentData?.link_type === 'friends') {
+          console.log('🔗 Link de amigos acessado:', currentData.referrer_name);
+        }
       }
 
       return { success: true, data: data?.[0] }
     } catch (err) {
+      console.error('❌ Erro ao incrementar contador de cliques:', err);
       return { 
         success: false, 
         error: err instanceof Error ? err.message : 'Erro ao incrementar contador de cliques' 
       }
     }
   }
+
 
   // Função para criar link único por usuário
   const createLink = async (userId: string, referrerName: string, expiresAt?: string) => {

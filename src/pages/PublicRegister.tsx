@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Autocomplete } from "@/components/ui/autocomplete";
 import { Logo } from "@/components/Logo";
 import { useToast } from "@/hooks/use-toast";
-import { User, Phone, Mail, Instagram, UserPlus, CheckCircle, MapPin, Building, AlertCircle, LogIn, ExternalLink } from "lucide-react";
+import { User, Phone, Mail, Instagram, UserPlus, MapPin, Building, AlertCircle, LogIn, ExternalLink } from "lucide-react";
 import { useUsers } from "@/hooks/useUsers";
 import { useUserLinks, UserLink } from "@/hooks/useUserLinks";
 
@@ -18,6 +18,7 @@ import { useMembers } from "@/hooks/useMembers";
 import { useSystemSettings } from "@/hooks/useSystemSettings";
 import { useFriends } from "@/hooks/useFriends";
 import { emailService, generateCredentials } from "@/services/emailService";
+import { buscarCep, validarFormatoCep, formatarCep, limparCep, CepData } from "@/services/cepService";
 // COMENTADO: Validação do Instagram (não está pronta)
 // import { validateInstagramAccount } from "@/services/instagramValidation";
 import { AuthUser, supabase } from "@/lib/supabase";
@@ -31,6 +32,7 @@ export default function PublicRegister() {
     name: "",
     phone: "",
     instagram: "",
+    cep: "",
     city: "",
     sector: "",
     referrer: "",
@@ -38,6 +40,7 @@ export default function PublicRegister() {
     couple_name: "",
     couple_phone: "",
     couple_instagram: "",
+    couple_cep: "",
     couple_city: "",
     couple_sector: ""
   });
@@ -46,6 +49,12 @@ export default function PublicRegister() {
   const [isSuccess, setIsSuccess] = useState(false);
   const [referrerData, setReferrerData] = useState<AuthUser | null>(null);
   const [linkData, setLinkData] = useState<ExtendedUserLink | null>(null);
+  const [cepLoading, setCepLoading] = useState(false);
+  const [coupleCepLoading, setCoupleCepLoading] = useState(false);
+  
+  // Estados para dados do CEP (cidade e setor)
+  const [cepData, setCepData] = useState<CepData | null>(null);
+  const [coupleCepData, setCoupleCepData] = useState<CepData | null>(null);
   const hasFetchedData = useRef(false);
   
   // Estados para nome de exibição personalizado
@@ -163,6 +172,216 @@ export default function PublicRegister() {
   };
 
   // Função para validar duplicatas entre membros e amigos
+  // Função para buscar CEP e preencher campos automaticamente
+  const buscarCepEPreencher = async (cep: string, isCouple: boolean = false) => {
+    try {
+      if (isCouple) {
+        setCoupleCepLoading(true);
+      } else {
+        setCepLoading(true);
+      }
+
+      // Limpar erros anteriores
+      setFormErrors(prev => ({
+        ...prev,
+        [isCouple ? 'couple_cep' : 'cep']: ''
+      }));
+
+      const dadosCep = await buscarCep(cep);
+      
+      // Armazenar dados do CEP
+      if (isCouple) {
+        setCoupleCepData(dadosCep);
+      } else {
+        setCepData(dadosCep);
+      }
+
+      // Preencher campos automaticamente
+      setFormData(prev => ({
+        ...prev,
+        [isCouple ? 'couple_city' : 'city']: dadosCep.cidade,
+        [isCouple ? 'couple_sector' : 'sector']: dadosCep.bairro
+      }));
+
+      console.log('✅ CEP encontrado e campos preenchidos:', dadosCep);
+
+    } catch (error) {
+      console.error('❌ Erro ao buscar CEP:', error);
+      
+      const errorMessage = error instanceof Error ? error.message : 'Erro ao buscar CEP';
+      
+      setFormErrors(prev => ({
+        ...prev,
+        [isCouple ? 'couple_cep' : 'cep']: errorMessage
+      }));
+
+      // Limpar dados do CEP em caso de erro
+      if (isCouple) {
+        setCoupleCepData(null);
+      } else {
+        setCepData(null);
+      }
+
+      toast({
+        title: "Erro ao buscar CEP",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    } finally {
+      if (isCouple) {
+        setCoupleCepLoading(false);
+      } else {
+        setCepLoading(false);
+      }
+    }
+  };
+
+  // Função para atualizar contadores do membro após cadastro de amigo
+  const updateMemberCountersAfterRegistration = async (referrerName: string) => {
+    try {
+      console.log('🔄 Atualizando contadores do membro após cadastro:', referrerName);
+      
+      // Buscar o membro referrer
+      const { data: referrerMembers, error: referrerError } = await supabase
+        .from('members')
+        .select('id, name, contracts_completed')
+        .eq('name', referrerName)
+        .eq('status', 'Ativo')
+        .is('deleted_at', null);
+
+      const referrerMember = referrerMembers?.[0];
+
+      if (referrerError) {
+        console.error('❌ Erro ao buscar referrer:', referrerError);
+        return;
+      }
+
+      if (!referrerMember) {
+        console.warn('⚠️ Referrer não encontrado:', referrerName);
+        return;
+      }
+
+      // Contar amigos ativos cadastrados por este membro
+      const { data: friendsData, error: friendsError } = await supabase
+        .from('friends')
+        .select('id')
+        .eq('referrer', referrerName)
+        .eq('status', 'Ativo')
+        .is('deleted_at', null);
+
+      if (friendsError) {
+        console.error('❌ Erro ao contar amigos:', friendsError);
+        return;
+      }
+
+      const friendsCount = friendsData?.length || 0;
+      const currentContracts = referrerMember.contracts_completed;
+
+      console.log(`📊 Contratos atuais: ${currentContracts}, Amigos cadastrados: ${friendsCount}`);
+
+      // Atualizar contracts_completed
+      console.log(`📈 Atualizando contratos após cadastro: ${currentContracts} → ${friendsCount}`);
+      
+      const { error: updateError } = await supabase
+        .from('members')
+        .update({ 
+          contracts_completed: friendsCount,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', referrerMember.id);
+
+      if (updateError) {
+        console.error('❌ Erro ao atualizar contratos do membro:', updateError);
+        return;
+      }
+
+      // Atualizar ranking e status
+      await updateMemberRankingAndStatus(referrerMember.id, friendsCount);
+      
+      console.log('✅ Contadores do membro atualizados após cadastro');
+
+    } catch (err) {
+      console.error('❌ Erro ao atualizar contadores após cadastro:', err);
+    }
+  }
+
+  // Função para atualizar ranking e status do membro
+  const updateMemberRankingAndStatus = async (memberId: string, contractsCount: number) => {
+    try {
+      console.log('🔄 Atualizando ranking e status do membro:', memberId, 'Contratos:', contractsCount);
+      
+      // Calcular status baseado no número de contratos
+      let rankingStatus = 'Vermelho';
+      if (contractsCount >= 15) {
+        rankingStatus = 'Verde';
+      } else if (contractsCount >= 1) {
+        rankingStatus = 'Amarelo';
+      }
+
+      // Atualizar status do membro
+      const { error: statusError } = await supabase
+        .from('members')
+        .update({ 
+          ranking_status: rankingStatus,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', memberId);
+
+      if (statusError) {
+        console.error('❌ Erro ao atualizar status do membro:', statusError);
+      }
+
+      // Atualizar ranking de todos os membros
+      await updateAllMembersRanking();
+
+    } catch (err) {
+      console.error('❌ Erro ao atualizar ranking e status:', err);
+    }
+  }
+
+  // Função para atualizar ranking de todos os membros
+  const updateAllMembersRanking = async () => {
+    try {
+      console.log('🔄 Atualizando ranking de todos os membros...');
+      
+      // Buscar todos os membros ordenados por contratos
+      const { data: membersData, error: fetchError } = await supabase
+        .from('members')
+        .select('id, contracts_completed, created_at')
+        .eq('status', 'Ativo')
+        .is('deleted_at', null)
+        .order('contracts_completed', { ascending: false })
+        .order('created_at', { ascending: true });
+
+      if (fetchError) {
+        console.error('❌ Erro ao buscar membros para ranking:', fetchError);
+        return;
+      }
+
+      // Atualizar ranking_position de cada membro
+      for (let i = 0; i < membersData.length; i++) {
+        const member = membersData[i];
+        const { error: updateError } = await supabase
+          .from('members')
+          .update({ 
+            ranking_position: i + 1,
+            is_top_1500: i < 10,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', member.id);
+
+        if (updateError) {
+          console.error('❌ Erro ao atualizar ranking do membro:', updateError);
+        }
+      }
+
+      console.log('✅ Ranking de todos os membros atualizado');
+
+    } catch (err) {
+      console.error('❌ Erro ao atualizar ranking geral:', err);
+    }
+  }
+
   const validateDuplicates = async () => {
     const errors: Record<string, string> = {};
     
@@ -273,12 +492,20 @@ export default function PublicRegister() {
       }
     }
     
+    if (!formData.cep.trim()) {
+      errors.cep = 'CEP é obrigatório';
+    } else if (!validarFormatoCep(formData.cep)) {
+      errors.cep = 'CEP deve ter 8 dígitos (ex: 12345-678)';
+    } else if (!cepData) {
+      errors.cep = 'CEP não encontrado - verifique se o CEP está correto';
+    }
+    
     if (!formData.city.trim()) {
-      errors.city = 'Cidade é obrigatória - selecione uma cidade válida da lista';
+      errors.city = 'Cidade é obrigatória';
     }
     
     if (!formData.sector.trim()) {
-      errors.sector = 'Setor é obrigatório - selecione um setor válido da lista';
+      errors.sector = 'Setor é obrigatório';
     }
 
     // Validação do parceiro (obrigatório)
@@ -301,6 +528,14 @@ export default function PublicRegister() {
       if (!coupleInstagramValidation.isValid) {
         errors.couple_instagram = coupleInstagramValidation.error || 'Instagram inválido';
       }
+    }
+    
+    if (!formData.couple_cep.trim()) {
+      errors.couple_cep = 'CEP do parceiro é obrigatório';
+    } else if (!validarFormatoCep(formData.couple_cep)) {
+      errors.couple_cep = 'CEP deve ter 8 dígitos (ex: 12345-678)';
+    } else if (!coupleCepData) {
+      errors.couple_cep = 'CEP não encontrado - verifique se o CEP está correto';
     }
     
     if (!formData.couple_city.trim()) {
@@ -332,6 +567,18 @@ export default function PublicRegister() {
     } else if (field === 'city' || field === 'couple_city') {
       // Permite apenas letras e espaços para cidade
       processedValue = value.replace(/[^a-zA-ZÀ-ÿ\s]/g, '');
+    } else if (field === 'sector' || field === 'couple_sector') {
+      // Permite apenas letras e espaços para setor
+      processedValue = value.replace(/[^a-zA-ZÀ-ÿ\s]/g, '');
+    } else if (field === 'cep' || field === 'couple_cep') {
+      // Formatar CEP e buscar automaticamente quando completo
+      processedValue = formatarCep(value);
+      
+      // Buscar CEP automaticamente quando tiver 8 dígitos
+      const cepLimpo = limparCep(value);
+      if (cepLimpo.length === 8 && validarFormatoCep(cepLimpo)) {
+        buscarCepEPreencher(cepLimpo, field === 'couple_cep');
+      }
     }
     
     setFormData(prev => ({ ...prev, [field]: processedValue }));
@@ -396,69 +643,10 @@ export default function PublicRegister() {
     try {
       setIsLoading(true);
       
-      // 1. VALIDAR CIDADE - Deve existir exatamente no banco
-      console.log('🔍 Validando cidade:', formData.city);
-      const { data: cityData, error: cityError } = await supabase
-        .from('cities')
-        .select('id, name')
-        .eq('state', 'GO')
-        .ilike('name', formData.city.trim())
-        .single();
+      // Validação de CEP já foi feita na função validateRequiredFields
+      // Os dados de cidade e setor vêm da consulta do CEP
 
-      if (cityError || !cityData) {
-        toast({
-          title: "❌ Cidade inválida",
-          description: `A cidade "${formData.city}" não foi encontrada no banco de dados. Por favor, selecione uma cidade válida da lista de sugestões.`,
-          variant: "destructive",
-        });
-        setIsLoading(false);
-        return;
-      }
-
-      // Verificar se o nome está exatamente igual (case-insensitive)
-      if (cityData.name.toLowerCase() !== formData.city.trim().toLowerCase()) {
-        toast({
-          title: "❌ Nome da cidade incorreto",
-          description: `O nome deve ser exatamente "${cityData.name}". Corrija o nome da cidade.`,
-          variant: "destructive",
-        });
-        setIsLoading(false);
-        return;
-      }
-
-      console.log('✅ Cidade válida:', cityData.name);
-
-      // 2. VALIDAR SETOR - Deve existir exatamente no banco para a cidade
-      console.log('🔍 Validando setor:', formData.sector, 'em', cityData.name);
-      const { data: existingSector, error: sectorError } = await supabase
-        .from('sectors')
-        .select('id, name')
-        .eq('name', formData.sector.trim())
-        .eq('city_id', cityData.id)
-        .single();
-
-      if (sectorError || !existingSector) {
-        toast({
-          title: "❌ Setor inválido",
-          description: `O setor "${formData.sector}" não foi encontrado em ${cityData.name}. Por favor, selecione um setor válido da lista de sugestões.`,
-          variant: "destructive",
-        });
-        setIsLoading(false);
-        return;
-      }
-
-      // Verificar se o nome está exatamente igual (case-insensitive)
-      if (existingSector.name.toLowerCase() !== formData.sector.trim().toLowerCase()) {
-        toast({
-          title: "❌ Nome do setor incorreto",
-          description: `O nome deve ser exatamente "${existingSector.name}". Corrija o nome do setor.`,
-          variant: "destructive",
-        });
-        setIsLoading(false);
-        return;
-      }
-
-      console.log('✅ Setor válido:', existingSector.name);
+      console.log('✅ Validação de CEP concluída');
 
     } catch (error) {
       console.error('💥 Erro na validação/criação:', error);
@@ -514,8 +702,8 @@ export default function PublicRegister() {
           name: formData.name.trim(),
           phone: formData.phone,
           instagram: formData.instagram.trim(),
-          city: formData.city,
-          sector: formData.sector,
+          city: formData.city.trim(),
+          sector: formData.sector.trim(),
           referrer: formData.referrer,
           registration_date: new Date().toISOString().split('T')[0],
           status: 'Ativo' as const,
@@ -541,6 +729,13 @@ export default function PublicRegister() {
 
         // Sucesso - Amigo cadastrado
         setIsSuccess(true);
+        
+        // Atualizar contadores do membro referrer após cadastro bem-sucedido
+        if (formData.referrer) {
+          console.log('🔄 Atualizando contadores do membro após cadastro:', formData.referrer);
+          await updateMemberCountersAfterRegistration(formData.referrer);
+        }
+        
         toast({
           title: "Amigo dupla cadastrado com sucesso!",
           description: `Você foi cadastrado como amigo dupla por ${formData.referrer}. Este é um cadastro especial.`,
@@ -555,8 +750,9 @@ export default function PublicRegister() {
           name: formData.name.trim(),
           phone: formData.phone,
           instagram: formData.instagram.trim(),
-          city: formData.city,
-          sector: formData.sector,
+          cep: formData.cep.trim(),
+          city: formData.city.trim(),
+          sector: formData.sector.trim(),
           referrer: formData.referrer,
           registration_date: new Date().toISOString().split('T')[0],
           status: 'Ativo' as const,
@@ -564,6 +760,7 @@ export default function PublicRegister() {
           couple_name: formData.couple_name.trim(),
           couple_phone: formData.couple_phone,
           couple_instagram: formData.couple_instagram.trim(),
+          couple_cep: formData.couple_cep.trim(),
           couple_city: formData.couple_city.trim(),
           couple_sector: formData.couple_sector.trim()
         };
@@ -582,8 +779,8 @@ export default function PublicRegister() {
           name: formData.name.trim(),
           phone: formData.phone,
           instagram: formData.instagram.trim(),
-          city: formData.city,
-          sector: formData.sector,
+          city: formData.city.trim(),
+          sector: formData.sector.trim(),
           referrer: formData.referrer,
           registration_date: new Date().toISOString().split('T')[0],
           status: 'Ativo' as const
@@ -653,7 +850,7 @@ export default function PublicRegister() {
         {/* Tela de Sucesso */}
         <div className="w-full max-w-md text-center">
           <div className="bg-white rounded-lg shadow-lg p-8 mb-8">
-            <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
+            <UserPlus className="w-16 h-16 text-green-500 mx-auto mb-4" />
             <h2 className="text-2xl font-bold text-institutional-blue mb-2">
               Cadastro Realizado!
             </h2>
@@ -886,29 +1083,74 @@ export default function PublicRegister() {
           )}
         </div>
 
-        {/* Campo Cidade - AUTCOMPLETE */}
+        {/* Campo CEP */}
         <div className="space-y-1">
-          <Autocomplete
-            value={formData.city}
-            onChange={(value) => handleInputChange('city', value)}
-            placeholder="Digite a cidade..."
-            icon={<Building className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />}
-            type="city"
-            error={formErrors.city}
-          />
+          <div className="relative">
+            <MapPin className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
+            <Input
+              type="text"
+              placeholder="CEP (12345-678)"
+              value={formData.cep}
+              onChange={(e) => handleInputChange('cep', e.target.value)}
+              className={`pl-12 h-12 bg-gray-800 border-gray-700 text-white placeholder-gray-400 focus:border-institutional-gold focus:ring-institutional-gold rounded-lg ${formErrors.cep ? 'border-red-500' : ''}`}
+              maxLength={9}
+              required
+            />
+            {cepLoading && (
+              <div className="absolute right-4 top-1/2 transform -translate-y-1/2">
+                <div className="w-5 h-5 border-2 border-institutional-gold border-t-transparent rounded-full animate-spin" />
+              </div>
+            )}
+          </div>
+          {formErrors.cep && (
+            <div className="flex items-center gap-1 text-red-400 text-sm">
+              <AlertCircle className="w-4 h-4" />
+              <span>{formErrors.cep}</span>
+            </div>
+          )}
         </div>
 
-        {/* Campo Setor - AUTCOMPLETE */}
+
+        {/* Campo Cidade */}
         <div className="space-y-1">
-          <Autocomplete
-            value={formData.sector}
-            onChange={(value) => handleInputChange('sector', value)}
-            placeholder="Digite o setor..."
-            icon={<MapPin className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />}
-            type="sector"
-            cityValue={formData.city}
-            error={formErrors.sector}
-          />
+          <div className="relative">
+            <Building className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
+            <Input
+              type="text"
+              placeholder="Cidade"
+              value={formData.city}
+              onChange={(e) => handleInputChange('city', e.target.value)}
+              className={`pl-12 h-12 bg-gray-800 border-gray-700 text-white placeholder-gray-400 focus:border-institutional-gold focus:ring-institutional-gold rounded-lg ${formErrors.city ? 'border-red-500' : ''}`}
+              required
+            />
+          </div>
+          {formErrors.city && (
+            <div className="flex items-center gap-1 text-red-400 text-sm">
+              <AlertCircle className="w-4 h-4" />
+              <span>{formErrors.city}</span>
+            </div>
+          )}
+        </div>
+
+        {/* Campo Setor */}
+        <div className="space-y-1">
+          <div className="relative">
+            <MapPin className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
+            <Input
+              type="text"
+              placeholder="Setor"
+              value={formData.sector}
+              onChange={(e) => handleInputChange('sector', e.target.value)}
+              className={`pl-12 h-12 bg-gray-800 border-gray-700 text-white placeholder-gray-400 focus:border-institutional-gold focus:ring-institutional-gold rounded-lg ${formErrors.sector ? 'border-red-500' : ''}`}
+              required
+            />
+          </div>
+          {formErrors.sector && (
+            <div className="flex items-center gap-1 text-red-400 text-sm">
+              <AlertCircle className="w-4 h-4" />
+              <span>{formErrors.sector}</span>
+            </div>
+          )}
         </div>
 
         {/* Campo WhatsApp */}
@@ -1015,29 +1257,74 @@ export default function PublicRegister() {
           )}
         </div>
 
-        {/* Campo Cidade do Parceiro - AUTCOMPLETE */}
+        {/* Campo CEP do Parceiro */}
         <div className="space-y-1">
-          <Autocomplete
-            value={formData.couple_city}
-            onChange={(value) => handleInputChange('couple_city', value)}
-            placeholder="Digite a cidade..."
-            icon={<Building className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />}
-            type="city"
-            error={formErrors.couple_city}
-          />
+          <div className="relative">
+            <MapPin className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
+            <Input
+              type="text"
+              placeholder="CEP do Parceiro (12345-678)"
+              value={formData.couple_cep}
+              onChange={(e) => handleInputChange('couple_cep', e.target.value)}
+              className={`pl-12 h-12 bg-gray-800 border-gray-700 text-white placeholder-gray-400 focus:border-institutional-gold focus:ring-institutional-gold rounded-lg ${formErrors.couple_cep ? 'border-red-500' : ''}`}
+              maxLength={9}
+              required
+            />
+            {coupleCepLoading && (
+              <div className="absolute right-4 top-1/2 transform -translate-y-1/2">
+                <div className="w-5 h-5 border-2 border-institutional-gold border-t-transparent rounded-full animate-spin" />
+              </div>
+            )}
+          </div>
+          {formErrors.couple_cep && (
+            <div className="flex items-center gap-1 text-red-400 text-sm">
+              <AlertCircle className="w-4 h-4" />
+              <span>{formErrors.couple_cep}</span>
+            </div>
+          )}
         </div>
 
-        {/* Campo Setor da Segunda Pessoa - AUTCOMPLETE */}
+
+        {/* Campo Cidade do Parceiro */}
         <div className="space-y-1">
-          <Autocomplete
-            value={formData.couple_sector}
-            onChange={(value) => handleInputChange('couple_sector', value)}
-            placeholder="Digite o setor..."
-            icon={<MapPin className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />}
-            type="sector"
-            cityValue={formData.couple_city}
-            error={formErrors.couple_sector}
-          />
+          <div className="relative">
+            <Building className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
+            <Input
+              type="text"
+              placeholder="Cidade do Parceiro"
+              value={formData.couple_city}
+              onChange={(e) => handleInputChange('couple_city', e.target.value)}
+              className={`pl-12 h-12 bg-gray-800 border-gray-700 text-white placeholder-gray-400 focus:border-institutional-gold focus:ring-institutional-gold rounded-lg ${formErrors.couple_city ? 'border-red-500' : ''}`}
+              required
+            />
+          </div>
+          {formErrors.couple_city && (
+            <div className="flex items-center gap-1 text-red-400 text-sm">
+              <AlertCircle className="w-4 h-4" />
+              <span>{formErrors.couple_city}</span>
+            </div>
+          )}
+        </div>
+
+        {/* Campo Setor do Parceiro */}
+        <div className="space-y-1">
+          <div className="relative">
+            <MapPin className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
+            <Input
+              type="text"
+              placeholder="Setor do Parceiro"
+              value={formData.couple_sector}
+              onChange={(e) => handleInputChange('couple_sector', e.target.value)}
+              className={`pl-12 h-12 bg-gray-800 border-gray-700 text-white placeholder-gray-400 focus:border-institutional-gold focus:ring-institutional-gold rounded-lg ${formErrors.couple_sector ? 'border-red-500' : ''}`}
+              required
+            />
+          </div>
+          {formErrors.couple_sector && (
+            <div className="flex items-center gap-1 text-red-400 text-sm">
+              <AlertCircle className="w-4 h-4" />
+              <span>{formErrors.couple_sector}</span>
+            </div>
+          )}
         </div>
 
         {/* Campo Instagram da Segunda Pessoa */}
