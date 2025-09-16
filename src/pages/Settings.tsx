@@ -314,8 +314,8 @@ export default function Settings() {
                     </div>
                     <div className="text-sm text-blue-600">
                       {settings?.paid_contracts_phase_active 
-                        ? 'Membros podem cadastrar amigos (contratos pagos)'
-                        : 'Membros só podem cadastrar outros membros'
+                        ? '.Fase de contratos pagos ativa'
+                        : 'Cada membro poderá cadastrar até 15 casais pagos quando ativada'
                       }
                     </div>
                   </div>

@@ -82,7 +82,7 @@ async function validateInstagramBasic(username: string): Promise<InstagramValida
   if (!validChars.test(username)) {
     return {
       status: false,
-      message: "Nome de usuário do Instagram deve conter apenas letras, números, pontos e underscores"
+      message: "Nome de usuário do Instagram deve conter apenas letras, números, pontos (.) e underscores (_). Não são permitidos espaços ou símbolos especiais como @, #, $, etc."
     };
   }
 

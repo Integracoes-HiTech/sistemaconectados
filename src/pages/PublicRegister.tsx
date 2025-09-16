@@ -110,14 +110,32 @@ export default function PublicRegister() {
     // Remove @ se o usuário digitou
     const cleanInstagram = instagram.replace('@', '');
     
+    // Validação de comprimento mínimo
     if (cleanInstagram.length < 3) {
       return { isValid: false, error: 'Nome de usuário do Instagram deve ter pelo menos 3 caracteres' };
     }
 
-    // Validação básica - apenas formato
+    // Validação de comprimento máximo (limite do Instagram)
+    if (cleanInstagram.length > 30) {
+      return { isValid: false, error: 'Nome de usuário do Instagram deve ter no máximo 30 caracteres' };
+    }
+
+    // Validação de caracteres permitidos (letras, números, pontos e underscores)
     const instagramRegex = /^[a-zA-Z0-9._]+$/;
     if (!instagramRegex.test(cleanInstagram)) {
-      return { isValid: false, error: 'Nome de usuário do Instagram deve conter apenas letras, números, pontos e underscores' };
+      return { isValid: false, error: 'Nome de usuário do Instagram deve conter apenas letras, números, pontos (.) e underscores (_). Não são permitidos espaços ou símbolos especiais' };
+    }
+
+    // Validação adicional: não pode começar ou terminar com ponto ou underscore
+    if (cleanInstagram.startsWith('.') || cleanInstagram.endsWith('.') || 
+        cleanInstagram.startsWith('_') || cleanInstagram.endsWith('_')) {
+      return { isValid: false, error: 'Nome de usuário do Instagram não pode começar ou terminar com ponto (.) ou underscore (_)' };
+    }
+
+    // Validação adicional: não pode ter pontos ou underscores consecutivos
+    if (cleanInstagram.includes('..') || cleanInstagram.includes('__') || 
+        cleanInstagram.includes('._') || cleanInstagram.includes('_.')) {
+      return { isValid: false, error: 'Nome de usuário do Instagram não pode ter pontos ou underscores consecutivos' };
     }
 
     // COMENTADO: Validação via API do Instagram (não está pronta)
@@ -144,7 +162,7 @@ export default function PublicRegister() {
     return { isValid: true, error: null };
   };
 
-  const validateRequiredFields = () => {
+  const validateRequiredFields = async () => {
     const errors: Record<string, string> = {};
     
     // Validação da primeira pessoa
@@ -162,6 +180,11 @@ export default function PublicRegister() {
     
     if (!formData.instagram.trim()) {
       errors.instagram = 'Instagram é obrigatório';
+    } else {
+      const instagramValidation = await validateInstagram(formData.instagram);
+      if (!instagramValidation.isValid) {
+        errors.instagram = instagramValidation.error || 'Instagram inválido';
+      }
     }
     
     if (!formData.city.trim()) {
@@ -187,6 +210,11 @@ export default function PublicRegister() {
     
     if (!formData.couple_instagram.trim()) {
       errors.couple_instagram = 'Instagram da segunda pessoa é obrigatório';
+    } else {
+      const coupleInstagramValidation = await validateInstagram(formData.couple_instagram);
+      if (!coupleInstagramValidation.isValid) {
+        errors.couple_instagram = coupleInstagramValidation.error || 'Instagram inválido';
+      }
     }
     
     if (!formData.couple_city.trim()) {
@@ -198,7 +226,7 @@ export default function PublicRegister() {
     }
     
     setFormErrors(errors);
-    return Object.keys(errors).length === 0;
+    return errors;
   };
 
   const handleInputChange = (field: string, value: string) => {
@@ -264,7 +292,8 @@ export default function PublicRegister() {
     e.preventDefault();
     
     // Valida todos os campos obrigatórios
-    if (!validateRequiredFields()) {
+    const validationErrors = await validateRequiredFields();
+    if (Object.keys(validationErrors).length > 0) {
       toast({
         title: "Campos obrigatórios",
         description: "Por favor, preencha todos os campos corretamente.",

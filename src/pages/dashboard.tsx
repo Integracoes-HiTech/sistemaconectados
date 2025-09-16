@@ -48,7 +48,6 @@ export default function Dashboard() {
   const [userLink, setUserLink] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
-  const [filterDate, setFilterDate] = useState("");
   const [filterReferrer, setFilterReferrer] = useState("");
   const [filterCity, setFilterCity] = useState("");
   const [filterSector, setFilterSector] = useState("");
@@ -263,15 +262,13 @@ export default function Dashboard() {
 
     const matchesStatus = filterStatus === "" || member.ranking_status === filterStatus;
     
-    const matchesDate = filterDate === "" || member.registration_date === filterDate;
-    
     const matchesReferrer = filterReferrer === "" || member.referrer.toLowerCase().includes(filterReferrer.toLowerCase());
     
     const matchesCity = filterCity === "" || member.city.toLowerCase().includes(filterCity.toLowerCase());
     
     const matchesSector = filterSector === "" || member.sector.toLowerCase().includes(filterSector.toLowerCase());
 
-    return matchesSearch && matchesStatus && matchesDate && matchesReferrer && matchesCity && matchesSector;
+    return matchesSearch && matchesStatus && matchesReferrer && matchesCity && matchesSector;
   }).sort((a, b) => {
     // Ordenar por ranking_position (menor número = melhor posição = mais contratos)
     // Se ranking_position for null, colocar no final
@@ -611,7 +608,7 @@ export default function Dashboard() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-institutional-blue">
                 <MapPin className="w-5 h-5" />
-                 Pessoas por Setor
+                Membros por Setor
               </CardTitle>
               <CardDescription>
                 Quantidade de Pessoas cadastrados em cada setor
@@ -646,7 +643,7 @@ export default function Dashboard() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-institutional-blue">
                 <Users className="w-5 h-5" />
-                Pessoas Cadastradas por Cidade
+                Membros por Cidade
               </CardTitle>
               <CardDescription>
                 Total de pessoas cadastradas em cada cidade
@@ -675,7 +672,7 @@ export default function Dashboard() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-institutional-blue">
                 <TrendingUp className="w-5 h-5" />
-                Cadastros Recentes
+                Cadastros Recentes de Membros
               </CardTitle>
               <CardDescription>
                 Últimos 7 dias - {stats.recent_registrations} novos cadastros
@@ -694,48 +691,65 @@ export default function Dashboard() {
             </CardContent>
           </Card>
 
-          {/* Gráfico de Registros por Links */}
+          {/* Gráfico de Membro com mais Amigos */}
           <Card className="shadow-[var(--shadow-card)]">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-institutional-blue">
-                <Share2 className="w-5 h-5" />
-                Membro com mais cadastro
+                <Users className="w-5 h-5" />
+                Membro com mais amigos
               </CardTitle>
               <CardDescription>
-                {isAdminUser 
-                  ? 'Link com maior número de registros do sistema' 
-                  : 'Seu link com maior número de registros'
-                }
+                Membro que cadastrou mais amigos no sistema
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {userLinks.length > 0 ? (
+              {filteredFriends.length > 0 ? (
                 (() => {
-                  const topLink = userLinks.reduce((max, link) => 
-                    link.registration_count > max.registration_count ? link : max
-                  );
+                  // Contar amigos por membro (excluindo admin)
+                  const friendsByMember = filteredFriends.reduce((acc, friend) => {
+                    if (friend.member_name && friend.member_name.toLowerCase() !== 'admin') {
+                      acc[friend.member_name] = (acc[friend.member_name] || 0) + 1;
+                    }
+                    return acc;
+                  }, {} as Record<string, number>);
+
+                  // Encontrar o membro com mais amigos
+                  const topMember = Object.entries(friendsByMember).reduce((max, [member, count]) => 
+                    count > max.count ? { member, count } : max
+                  , { member: '', count: 0 });
+
+                  if (topMember.count === 0) {
+                    return (
+                      <div className="flex items-center justify-center h-[300px] text-muted-foreground">
+                        <div className="text-center">
+                          <Users className="w-12 h-12 mx-auto mb-4 text-muted-foreground/50" />
+                          <p>Nenhum membro com amigos cadastrados</p>
+                        </div>
+                      </div>
+                    );
+                  }
                   
                   return (
                     <div className="flex items-center justify-center h-[300px]">
                       <div className="text-center">
                         <div className="text-4xl font-bold text-institutional-gold mb-2">
-                          {topLink.registration_count}
+                          {topMember.count}
                         </div>
                         <div className="text-sm text-muted-foreground mb-4">
-                          Registros via link
+                          Amigos cadastrados
                         </div>
                         <div className="bg-institutional-light p-4 rounded-lg">
                           <div className="text-sm font-medium text-institutional-blue mb-1">
-                            Link de: {topLink.referrer_name}
+                            Membro: {topMember.member}
                           </div>
                           <div className="text-xs text-muted-foreground">
-                            {topLink.click_count} cliques • Criado em {new Date(topLink.created_at).toLocaleDateString('pt-BR')}
+                            Total de {Object.keys(friendsByMember).length} membros ativos
                           </div>
                         </div>
                         <div className="mt-4 w-full bg-gray-200 rounded-full h-2">
                           <div 
                             className="bg-institutional-gold h-2 rounded-full transition-all duration-500"
-                            style={{ width: `${Math.min((topLink.registration_count / Math.max(...userLinks.map(l => l.registration_count))) * 100, 100)}%` }}
+                            style={{ width: `${Math.min((topMember.count / Math.max(...Object.values(friendsByMember))) * 100, 100)}%` }}
                           ></div>
                         </div>
                       </div>
@@ -745,8 +759,8 @@ export default function Dashboard() {
               ) : (
                 <div className="flex items-center justify-center h-[300px] text-muted-foreground">
                   <div className="text-center">
-                    <Share2 className="w-12 h-12 mx-auto mb-4 text-muted-foreground/50" />
-                    <p>Nenhum link encontrado</p>
+                    <Users className="w-12 h-12 mx-auto mb-4 text-muted-foreground/50" />
+                    <p>Nenhum amigo cadastrado</p>
                   </div>
                 </div>
               )}
@@ -1004,19 +1018,6 @@ export default function Dashboard() {
               />
             </div>
 
-            <div className="relative">
-              <CalendarDays className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                type="date"
-                placeholder="Filtrar por data..."
-                value={filterDate}
-                onChange={(e) => {
-                  setFilterDate(e.target.value);
-                  resetMembersPagination();
-                }}
-                className="pl-10 border-institutional-light focus:border-institutional-gold focus:ring-institutional-gold"
-              />
-            </div>
 
             <div className="relative">
               <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -1280,6 +1281,33 @@ export default function Dashboard() {
       </Card>
         )}
 
+        {/* Card de Total de Amigos (Apenas Administradores) */}
+        {isAdmin() && (
+          <div className="mb-6">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-semibold text-institutional-blue">Resumo dos Amigos</h2>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+              <Card className="shadow-[var(--shadow-card)] border-l-4 border-l-institutional-gold">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">Total de Amigos</p>
+                      <p className="text-2xl font-bold text-institutional-blue">{filteredFriends.length}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {filteredFriends.length} amigos cadastrados
+                      </p>
+                    </div>
+                    <div className="p-3 rounded-full bg-institutional-light">
+                      <UserCheck className="w-6 h-6 text-institutional-blue" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        )}
+
         {/* Seção de Ranking de Amigos (Apenas Administradores) */}
         {isAdmin() && (
         <Card className="shadow-[var(--shadow-card)] mt-8">
@@ -1373,15 +1401,18 @@ export default function Dashboard() {
                       <td className="py-3 px-4">
                         <div className="flex items-center gap-2">
                           <div className="w-8 h-8 bg-institutional-gold/10 rounded-full flex items-center justify-center">
-                            <UserCheck className="w-4 h-4 text-institutional-gold" />
+                            <UserIcon className="w-4 h-4 text-institutional-gold" />
                           </div>
                           <div>
-                            <span className="font-medium text-institutional-blue">
-                              {friend.name} & {friend.couple_name}
-                            </span>
+                            <span className="font-medium text-institutional-blue">{friend.name}</span>
                             <div className="text-xs text-gray-500">
                               Amigo
                             </div>
+                            {friend.couple_name && (
+                              <div className="text-xs text-gray-400 mt-1">
+                                👫 {friend.couple_name}
+                              </div>
+                            )}
                           </div>
                         </div>
                       </td>
@@ -1399,13 +1430,13 @@ export default function Dashboard() {
                       </td>
                       <td className="py-3 px-4">
                         <div className="flex items-center gap-2">
-                          <MapPin className="w-4 h-4 text-muted-foreground" />
+                          <Building className="w-4 h-4 text-muted-foreground" />
                           <span className="text-sm">{friend.city || 'N/A'}</span>
                         </div>
                       </td>
                       <td className="py-3 px-4">
                         <div className="flex items-center gap-2">
-                          <Building className="w-4 h-4 text-muted-foreground" />
+                          <MapPin className="w-4 h-4 text-muted-foreground" />
                           <span className="text-sm">{friend.sector || 'N/A'}</span>
                         </div>
                       </td>
@@ -1420,16 +1451,15 @@ export default function Dashboard() {
                       </td>
                       {isAdmin() && (
                         <td className="py-3 px-4">
-                          <div className="flex items-center gap-2">
-                            <Button
-                              size="sm"
-                              variant="destructive"
-                              onClick={() => handleRemoveMember(friend.id, friend.name)}
-                              className="text-xs"
-                            >
-                              Remover
-                            </Button>
-                          </div>
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            onClick={() => handleRemoveMember(friend.id, friend.name)}
+                            className="bg-red-600 hover:bg-red-700 text-white"
+                          >
+                            <UserIcon className="w-4 h-4 mr-1" />
+                            Excluir
+                          </Button>
                         </td>
                       )}
                     </tr>
@@ -1439,11 +1469,8 @@ export default function Dashboard() {
               
               {filteredFriends.length === 0 && (
                 <div className="text-center py-8 text-muted-foreground">
-                  <UserCheck className="w-12 h-12 mx-auto mb-4 text-muted-foreground/50" />
+                  <Users className="w-12 h-12 mx-auto mb-4 text-muted-foreground/50" />
                   <p>Nenhum amigo encontrado com os critérios de pesquisa.</p>
-                  {filteredFriends.length === 0 && (
-                    <p className="text-sm mt-2">Ainda não há amigos cadastrados no sistema.</p>
-                  )}
                 </div>
               )}
             </div>
@@ -1521,15 +1548,6 @@ export default function Dashboard() {
               </div>
             )}
 
-            {/* Resumo do Ranking dos Amigos */}
-            <div className="mt-6 p-4 bg-institutional-light rounded-lg">
-              <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-institutional-blue">{filteredFriends.length}</div>
-                  <div className="text-sm text-gray-600">Total de Amigos</div>
-                </div>
-              </div>
-            </div>
           </CardContent>
         </Card>
         )}
