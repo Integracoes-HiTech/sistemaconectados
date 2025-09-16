@@ -162,6 +162,92 @@ export default function PublicRegister() {
     return { isValid: true, error: null };
   };
 
+  // Função para validar duplicatas entre membros e amigos
+  const validateDuplicates = async () => {
+    const errors: Record<string, string> = {};
+    
+    try {
+      // Normalizar telefones para comparação
+      const normalizedPhone = formData.phone.replace(/\D/g, '');
+      const normalizedCouplePhone = formData.couple_phone.replace(/\D/g, '');
+      
+      // Verificar duplicatas dentro do mesmo casal
+      if (normalizedPhone === normalizedCouplePhone) {
+        errors.couple_phone = 'O telefone do cônjuge não pode ser igual ao seu telefone';
+      }
+      
+      if (formData.instagram.toLowerCase() === formData.couple_instagram.toLowerCase()) {
+        errors.couple_instagram = 'O Instagram do cônjuge não pode ser igual ao seu Instagram';
+      }
+
+      // Verificar duplicatas com membros existentes
+      const { data: membersData, error: membersError } = await supabase
+        .from('members')
+        .select('name, phone, instagram, couple_name, couple_phone, couple_instagram')
+        .eq('status', 'Ativo')
+        .is('deleted_at', null);
+
+      if (membersError) {
+        console.error('Erro ao verificar membros:', membersError);
+        return errors;
+      }
+
+      // Verificar duplicatas com amigos existentes
+      const { data: friendsData, error: friendsError } = await supabase
+        .from('friends')
+        .select('name, phone, instagram, couple_name, couple_phone, couple_instagram')
+        .eq('status', 'Ativo')
+        .is('deleted_at', null);
+
+      if (friendsError) {
+        console.error('Erro ao verificar amigos:', friendsError);
+        return errors;
+      }
+
+      // Combinar dados de membros e amigos
+      const allUsers = [...(membersData || []), ...(friendsData || [])];
+
+      // Verificar duplicatas
+      for (const user of allUsers) {
+        const userPhone = user.phone?.replace(/\D/g, '') || '';
+        const userCouplePhone = user.couple_phone?.replace(/\D/g, '') || '';
+        const userInstagram = user.instagram?.toLowerCase() || '';
+        const userCoupleInstagram = user.couple_instagram?.toLowerCase() || '';
+
+        // Verificar telefone principal
+        if (userPhone === normalizedPhone) {
+          errors.phone = `Este telefone já está cadastrado para ${user.name}`;
+        }
+
+        // Verificar telefone do cônjuge
+        if (userPhone === normalizedCouplePhone) {
+          errors.couple_phone = `Este telefone já está cadastrado para ${user.name}`;
+        }
+        if (userCouplePhone === normalizedCouplePhone) {
+          errors.couple_phone = `Este telefone já está cadastrado para ${user.couple_name}`;
+        }
+
+        // Verificar Instagram principal
+        if (userInstagram === formData.instagram.toLowerCase()) {
+          errors.instagram = `Este Instagram já está cadastrado para ${user.name}`;
+        }
+
+        // Verificar Instagram do cônjuge
+        if (userInstagram === formData.couple_instagram.toLowerCase()) {
+          errors.couple_instagram = `Este Instagram já está cadastrado para ${user.name}`;
+        }
+        if (userCoupleInstagram === formData.couple_instagram.toLowerCase()) {
+          errors.couple_instagram = `Este Instagram já está cadastrado para ${user.couple_name}`;
+        }
+      }
+
+    } catch (error) {
+      console.error('Erro na validação de duplicatas:', error);
+    }
+
+    return errors;
+  };
+
   const validateRequiredFields = async () => {
     const errors: Record<string, string> = {};
     
@@ -225,6 +311,10 @@ export default function PublicRegister() {
       errors.couple_sector = 'Setor da segunda pessoa é obrigatório';
     }
     
+    // Validar duplicatas
+    const duplicateErrors = await validateDuplicates();
+    Object.assign(errors, duplicateErrors);
+
     setFormErrors(errors);
     return errors;
   };
@@ -383,18 +473,6 @@ export default function PublicRegister() {
 
     // Continuar com o cadastro do membro
     try {
-      // Verificar se usuário já existe antes de salvar
-      const userExistsCheck = await checkUserExists(formData.instagram.trim(), formData.phone);
-      
-      if (userExistsCheck.exists) {
-        toast({
-          title: "Membro já cadastrado",
-          description: userExistsCheck.message,
-          variant: "destructive",
-        });
-        setIsLoading(false);
-        return;
-      }
 
       // IDENTIFICAR TIPO DE LINK - Verificar se é para cadastrar membro ou amigo
       const isFriendRegistration = linkData?.link_type === 'friends';

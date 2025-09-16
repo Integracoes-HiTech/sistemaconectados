@@ -970,7 +970,21 @@ export default function Dashboard() {
               <div className="flex gap-2 mt-4">
                 <Button
                   size="sm"
-                  onClick={() => exportMembersToExcel(filteredMembers)}
+                  onClick={async () => {
+                    try {
+                      await exportMembersToExcel(filteredMembers);
+                      toast({
+                        title: "✅ Excel exportado",
+                        description: "Arquivo Excel dos membros foi baixado com sucesso!",
+                      });
+                    } catch (error) {
+                      toast({
+                        title: "❌ Erro na exportação",
+                        description: error instanceof Error ? error.message : "Erro ao exportar Excel",
+                        variant: "destructive",
+                      });
+                    }
+                  }}
                   className="bg-green-600 hover:bg-green-700 text-white"
                 >
                   <BarChart3 className="w-4 h-4 mr-2" />
@@ -978,7 +992,21 @@ export default function Dashboard() {
                 </Button>
                 <Button
                   size="sm"
-                  onClick={() => exportToPDF('members-table', 'ranking_membros.pdf')}
+                  onClick={async () => {
+                    try {
+                      await exportToPDF('members-table', 'ranking_membros.pdf');
+                      toast({
+                        title: "✅ PDF exportado",
+                        description: "Arquivo PDF dos membros foi baixado com sucesso!",
+                      });
+                    } catch (error) {
+                      toast({
+                        title: "❌ Erro na exportação",
+                        description: error instanceof Error ? error.message : "Erro ao exportar PDF",
+                        variant: "destructive",
+                      });
+                    }
+                  }}
                   className="bg-red-600 hover:bg-red-700 text-white"
                 >
                   <BarChart3 className="w-4 h-4 mr-2" />

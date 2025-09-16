@@ -68,16 +68,41 @@ export const useFriends = () => {
       console.log('🔍 Hook useFriends - Dados recebidos:', friendData);
       
       // Buscar o ID do membro que está cadastrando o amigo
-      const { data: memberData, error: memberError } = await supabase
+      console.log('🔍 Buscando membro referrer:', friendData.referrer);
+      
+      let { data: memberData, error: memberError } = await supabase
         .from('members')
-        .select('id')
+        .select('id, name')
         .eq('name', friendData.referrer)
         .eq('status', 'Ativo')
         .is('deleted_at', null)
         .single();
 
-      if (memberError || !memberData) {
-        throw new Error(`Membro referrer "${friendData.referrer}" não encontrado`);
+      console.log('🔍 Resultado da busca do membro:', { memberData, memberError });
+
+      if (memberError) {
+        console.error('❌ Erro ao buscar membro:', memberError);
+        throw new Error(`Erro ao buscar membro referrer: ${memberError.message}`);
+      }
+
+      if (!memberData) {
+        // Tentar buscar com ILIKE para case-insensitive
+        console.log('🔍 Tentando busca case-insensitive...');
+        const { data: memberDataCaseInsensitive, error: memberErrorCaseInsensitive } = await supabase
+          .from('members')
+          .select('id, name')
+          .ilike('name', friendData.referrer)
+          .eq('status', 'Ativo')
+          .is('deleted_at', null)
+          .single();
+
+        console.log('🔍 Resultado da busca case-insensitive:', { memberDataCaseInsensitive, memberErrorCaseInsensitive });
+
+        if (memberErrorCaseInsensitive || !memberDataCaseInsensitive) {
+          throw new Error(`Membro referrer "${friendData.referrer}" não encontrado na tabela members`);
+        }
+        
+        memberData = memberDataCaseInsensitive;
       }
 
       console.log('🔍 Membro referrer encontrado:', memberData);

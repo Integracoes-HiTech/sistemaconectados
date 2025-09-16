@@ -8,18 +8,28 @@ export const useExportReports = () => {
   // Exportar para PDF
   const exportToPDF = useCallback(async (elementId: string, filename: string = 'relatorio.pdf') => {
     try {
+      console.log('🔍 Tentando exportar PDF para elemento:', elementId)
+      
       const element = document.getElementById(elementId)
       if (!element) {
-        throw new Error('Elemento não encontrado')
+        console.error('❌ Elemento não encontrado:', elementId)
+        throw new Error(`Elemento com ID "${elementId}" não encontrado`)
       }
 
+      console.log('✅ Elemento encontrado, gerando canvas...')
+      
       const canvas = await html2canvas(element, {
         scale: 2,
         useCORS: true,
         allowTaint: true,
-        backgroundColor: '#ffffff'
+        backgroundColor: '#ffffff',
+        logging: false,
+        width: element.scrollWidth,
+        height: element.scrollHeight
       })
 
+      console.log('✅ Canvas gerado, criando PDF...')
+      
       const imgData = canvas.toDataURL('image/png')
       const pdf = new jsPDF('p', 'mm', 'a4')
       
@@ -40,23 +50,36 @@ export const useExportReports = () => {
         heightLeft -= pageHeight
       }
 
+      console.log('✅ PDF criado, salvando arquivo:', filename)
       pdf.save(filename)
+      
+      console.log('✅ PDF exportado com sucesso!')
     } catch (error) {
-      console.error('Erro ao exportar PDF:', error)
-      throw error
+      console.error('❌ Erro ao exportar PDF:', error)
+      throw new Error(`Erro ao exportar PDF: ${error instanceof Error ? error.message : 'Erro desconhecido'}`)
     }
   }, [])
 
   // Exportar dados para Excel
   const exportToExcel = useCallback((data: any[], filename: string = 'relatorio.xlsx', sheetName: string = 'Relatório') => {
     try {
+      console.log('🔍 Tentando exportar Excel:', filename, 'com', data.length, 'registros')
+      
+      if (!data || data.length === 0) {
+        throw new Error('Nenhum dado para exportar')
+      }
+
       const worksheet = XLSX.utils.json_to_sheet(data)
       const workbook = XLSX.utils.book_new()
       XLSX.utils.book_append_sheet(workbook, worksheet, sheetName)
+      
+      console.log('✅ Excel criado, salvando arquivo:', filename)
       XLSX.writeFile(workbook, filename)
+      
+      console.log('✅ Excel exportado com sucesso!')
     } catch (error) {
-      console.error('Erro ao exportar Excel:', error)
-      throw error
+      console.error('❌ Erro ao exportar Excel:', error)
+      throw new Error(`Erro ao exportar Excel: ${error instanceof Error ? error.message : 'Erro desconhecido'}`)
     }
   }, [])
 
