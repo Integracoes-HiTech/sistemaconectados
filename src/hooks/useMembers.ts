@@ -229,13 +229,14 @@ export const useMembers = (referrer?: string) => {
       console.log('🔄 Atualizando contratos do referrer:', referrerName);
       
       // Buscar o membro referrer pelo nome
-      const { data: referrerMember, error: referrerError } = await supabase
+      const { data: referrerMembers, error: referrerError } = await supabase
         .from('members')
         .select('id, name, contracts_completed')
         .eq('name', referrerName)
         .eq('status', 'Ativo')
-        .is('deleted_at', null)
-        .single();
+        .is('deleted_at', null);
+
+      const referrerMember = referrerMembers?.[0]; // Pegar o primeiro resultado
 
       if (referrerError) {
         console.error('❌ Erro ao buscar referrer:', referrerError);

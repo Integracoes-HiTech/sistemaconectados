@@ -34,7 +34,7 @@ export default function PublicRegister() {
     city: "",
     sector: "",
     referrer: "",
-    // Dados da segunda pessoa (obrigatório)
+    // Dados do parceiro (obrigatório)
     couple_name: "",
     couple_phone: "",
     couple_instagram: "",
@@ -171,13 +171,13 @@ export default function PublicRegister() {
       const normalizedPhone = formData.phone.replace(/\D/g, '');
       const normalizedCouplePhone = formData.couple_phone.replace(/\D/g, '');
       
-      // Verificar duplicatas dentro do mesmo casal
+      // Verificar duplicatas dentro da mesma dupla
       if (normalizedPhone === normalizedCouplePhone) {
-        errors.couple_phone = 'O telefone do cônjuge não pode ser igual ao seu telefone';
+        errors.couple_phone = 'O telefone do parceiro não pode ser igual ao seu telefone';
       }
       
       if (formData.instagram.toLowerCase() === formData.couple_instagram.toLowerCase()) {
-        errors.couple_instagram = 'O Instagram do cônjuge não pode ser igual ao seu Instagram';
+        errors.couple_instagram = 'O Instagram do parceiro não pode ser igual ao seu Instagram';
       }
 
       // Verificar duplicatas com membros existentes
@@ -219,7 +219,7 @@ export default function PublicRegister() {
           errors.phone = `Este telefone já está cadastrado para ${user.name}`;
         }
 
-        // Verificar telefone do cônjuge
+        // Verificar telefone do parceiro
         if (userPhone === normalizedCouplePhone) {
           errors.couple_phone = `Este telefone já está cadastrado para ${user.name}`;
         }
@@ -232,7 +232,7 @@ export default function PublicRegister() {
           errors.instagram = `Este Instagram já está cadastrado para ${user.name}`;
         }
 
-        // Verificar Instagram do cônjuge
+        // Verificar Instagram do parceiro
         if (userInstagram === formData.couple_instagram.toLowerCase()) {
           errors.couple_instagram = `Este Instagram já está cadastrado para ${user.name}`;
         }
@@ -281,21 +281,21 @@ export default function PublicRegister() {
       errors.sector = 'Setor é obrigatório - selecione um setor válido da lista';
     }
 
-    // Validação da segunda pessoa (obrigatória)
+    // Validação do parceiro (obrigatório)
     if (!formData.couple_name.trim()) {
-      errors.couple_name = 'Nome da segunda pessoa é obrigatório';
+      errors.couple_name = 'Nome do parceiro é obrigatório';
     } else if (!validateName(formData.couple_name)) {
       errors.couple_name = 'Deve conter nome e sobrenome';
     }
     
     if (!formData.couple_phone.trim()) {
-      errors.couple_phone = 'WhatsApp da segunda pessoa é obrigatório';
+      errors.couple_phone = 'WhatsApp do parceiro é obrigatório';
     } else if (!validatePhone(formData.couple_phone)) {
       errors.couple_phone = 'WhatsApp deve ter 11 dígitos (DDD + 9 dígitos)';
     }
     
     if (!formData.couple_instagram.trim()) {
-      errors.couple_instagram = 'Instagram da segunda pessoa é obrigatório';
+      errors.couple_instagram = 'Instagram do parceiro é obrigatório';
     } else {
       const coupleInstagramValidation = await validateInstagram(formData.couple_instagram);
       if (!coupleInstagramValidation.isValid) {
@@ -304,17 +304,17 @@ export default function PublicRegister() {
     }
     
     if (!formData.couple_city.trim()) {
-      errors.couple_city = 'Cidade da segunda pessoa é obrigatória';
+      errors.couple_city = 'Cidade do parceiro é obrigatória';
     }
     
     if (!formData.couple_sector.trim()) {
-      errors.couple_sector = 'Setor da segunda pessoa é obrigatório';
+      errors.couple_sector = 'Setor do parceiro é obrigatório';
     }
     
     // Validar duplicatas
     const duplicateErrors = await validateDuplicates();
     Object.assign(errors, duplicateErrors);
-
+    
     setFormErrors(errors);
     return errors;
   };
@@ -506,8 +506,8 @@ export default function PublicRegister() {
       }
 
       if (isFriendRegistration) {
-        // CADASTRO DE AMIGO (CONTRATO PAGO) - Usar tabela friends
-        console.log('📝 Cadastrando amigo (contrato pago)...');
+        // CADASTRO DE AMIGO (CADASTRO ESPECIAL) - Usar tabela friends
+        console.log('📝 Cadastrando amigo (cadastro especial)...');
         
         // Preparar dados do amigo para tabela friends
         const friendData = {
@@ -519,7 +519,7 @@ export default function PublicRegister() {
           referrer: formData.referrer,
           registration_date: new Date().toISOString().split('T')[0],
           status: 'Ativo' as const,
-          // Dados da segunda pessoa (obrigatório)
+          // Dados do parceiro (obrigatório)
           couple_name: formData.couple_name.trim(),
           couple_phone: formData.couple_phone,
           couple_instagram: formData.couple_instagram.trim(),
@@ -542,8 +542,8 @@ export default function PublicRegister() {
         // Sucesso - Amigo cadastrado
         setIsSuccess(true);
         toast({
-          title: "Amigo casal cadastrado com sucesso!",
-          description: `Você foi cadastrado como amigo casal por ${formData.referrer}. Este é um contrato pago.`,
+          title: "Amigo dupla cadastrado com sucesso!",
+          description: `Você foi cadastrado como amigo dupla por ${formData.referrer}. Este é um cadastro especial.`,
         });
 
       } else {
@@ -560,7 +560,7 @@ export default function PublicRegister() {
           referrer: formData.referrer,
           registration_date: new Date().toISOString().split('T')[0],
           status: 'Ativo' as const,
-          // Dados da segunda pessoa (obrigatório)
+          // Dados do parceiro (obrigatório)
           couple_name: formData.couple_name.trim(),
           couple_phone: formData.couple_phone,
           couple_instagram: formData.couple_instagram.trim(),
@@ -595,7 +595,7 @@ export default function PublicRegister() {
           console.warn('Aviso: Erro ao salvar na tabela users:', userResult.error);
         }
 
-        // 3. Criar credenciais compartilhadas para o casal
+        // 3. Criar credenciais compartilhadas para a dupla
         const userDataForCouple = {
           ...userData,
           full_name: `${formData.name} e ${formData.couple_name} - Casal`,
@@ -659,7 +659,7 @@ export default function PublicRegister() {
             </h2>
             <div className="bg-institutional-light rounded-lg p-4 mb-4">
               <p className="text-sm text-institutional-blue mb-2">
-                <strong>Conta compartilhada do casal:</strong>
+                <strong>Conta compartilhada da dupla:</strong>
             </p>
               <div className="space-y-3 text-sm">
                 <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
@@ -679,14 +679,14 @@ export default function PublicRegister() {
               </p>
               {linkData?.link_type === 'friends' && (
                 <p className="text-sm text-green-600 mt-2">
-                  💰 <strong>Contrato Pago:</strong> Você foi cadastrado como amigo casal por um membro com contrato pago.
+                  💰 <strong>Cadastro Especial:</strong> Você foi cadastrado como amigo dupla por um membro com cadastro especial.
                 </p>
               )}
             </div>
             <p className="text-sm text-institutional-blue bg-institutional-light p-3 rounded-lg mb-4">
               <strong>Como acessar:</strong> {linkData?.link_type === 'friends' 
-                ? 'Este é um cadastro de amigo (contrato pago). O membro responsável receberá as informações de acesso.'
-                : 'Ambos podem usar a mesma conta compartilhada para fazer login no sistema. O casal compartilha o mesmo usuário, senha e link de cadastro. Clique no botão abaixo para entrar.'
+                ? 'Este é um cadastro de amigo (cadastro especial). O membro responsável receberá as informações de acesso.'
+                : 'Ambos podem usar a mesma conta compartilhada para fazer login no sistema. A dupla compartilha o mesmo usuário, senha e link de cadastro. Clique no botão abaixo para entrar.'
               }
             </p>
             
@@ -978,7 +978,7 @@ export default function PublicRegister() {
             <User className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
             <Input
               type="text"
-              placeholder="Nome Completo da Segunda Pessoa (ex: Maria Silva)"
+              placeholder="Nome Completo do Parceiro (ex: Maria Silva)"
               value={formData.couple_name}
               onChange={(e) => handleInputChange('couple_name', e.target.value)}
               className={`pl-12 h-12 bg-gray-800 border-gray-700 text-white placeholder-gray-400 focus:border-institutional-gold focus:ring-institutional-gold rounded-lg ${formErrors.couple_name ? 'border-red-500' : ''}`}
@@ -999,7 +999,7 @@ export default function PublicRegister() {
             <Phone className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
             <Input
               type="tel"
-              placeholder="WhatsApp da Segunda Pessoa (62) 99999-9999"
+              placeholder="WhatsApp do Parceiro (62) 99999-9999"
               value={formData.couple_phone}
               onChange={(e) => handleInputChange('couple_phone', e.target.value)}
               className={`pl-12 h-12 bg-gray-800 border-gray-700 text-white placeholder-gray-400 focus:border-institutional-gold focus:ring-institutional-gold rounded-lg ${formErrors.couple_phone ? 'border-red-500' : ''}`}
@@ -1015,7 +1015,7 @@ export default function PublicRegister() {
           )}
         </div>
 
-        {/* Campo Cidade da Segunda Pessoa - AUTCOMPLETE */}
+        {/* Campo Cidade do Parceiro - AUTCOMPLETE */}
         <div className="space-y-1">
           <Autocomplete
             value={formData.couple_city}

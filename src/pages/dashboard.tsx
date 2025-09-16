@@ -249,7 +249,7 @@ export default function Dashboard() {
       member.city.toLowerCase().includes(searchTerm.toLowerCase()) ||
       member.sector.toLowerCase().includes(searchTerm.toLowerCase()) ||
       member.referrer.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      // Campos da segunda pessoa (cônjuge)
+      // Campos do parceiro
       member.couple_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       member.couple_phone.includes(searchTerm) ||
       member.couple_instagram.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -288,7 +288,7 @@ export default function Dashboard() {
       friend.city.toLowerCase().includes(friendsSearchTerm.toLowerCase()) ||
       friend.sector.toLowerCase().includes(friendsSearchTerm.toLowerCase()) ||
       friend.referrer.toLowerCase().includes(friendsSearchTerm.toLowerCase()) ||
-      // Campos da segunda pessoa (cônjuge)
+      // Campos do parceiro
       friend.couple_name.toLowerCase().includes(friendsSearchTerm.toLowerCase()) ||
       friend.couple_phone.includes(friendsSearchTerm) ||
       friend.couple_instagram.toLowerCase().includes(friendsSearchTerm.toLowerCase()) ||
@@ -1022,7 +1022,7 @@ export default function Dashboard() {
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
                 type="text"
-                placeholder="Pesquisar por qualquer campo (nome, telefone, Instagram, cidade, setor, cônjuge, contratos, ranking)..."
+                placeholder="Pesquisar por qualquer campo (nome, telefone, Instagram, cidade, setor, parceiro, contratos, ranking)..."
                 value={searchTerm}
                 onChange={(e) => {
                   setSearchTerm(e.target.value);
@@ -1099,7 +1099,7 @@ export default function Dashboard() {
               <thead>
                 <tr className="border-b border-institutional-light">
                   <th className="text-left py-3 px-4 font-semibold text-institutional-blue">Posição</th>
-                  <th className="text-left py-3 px-4 font-semibold text-institutional-blue">Membro e Cônjuge</th>
+                  <th className="text-left py-3 px-4 font-semibold text-institutional-blue">Membro e Parceiro</th>
                   <th className="text-left py-3 px-4 font-semibold text-institutional-blue">WhatsApp</th>
                   <th className="text-left py-3 px-4 font-semibold text-institutional-blue">Instagram</th>
                   <th className="text-left py-3 px-4 font-semibold text-institutional-blue">Cidade</th>
@@ -1373,7 +1373,7 @@ export default function Dashboard() {
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
                   type="text"
-                  placeholder="Pesquisar amigos por qualquer campo (nome, telefone, Instagram, cidade, setor, cônjuge, contratos, ranking)..."
+                  placeholder="Pesquisar amigos por qualquer campo (nome, telefone, Instagram, cidade, setor, parceiro, contratos, ranking)..."
                   value={friendsSearchTerm}
                   onChange={(e) => {
                     setFriendsSearchTerm(e.target.value);
@@ -1405,7 +1405,7 @@ export default function Dashboard() {
                 <thead>
                   <tr className="border-b border-institutional-light">
                     <th className="text-left py-3 px-4 font-semibold text-institutional-blue">Posição</th>
-                    <th className="text-left py-3 px-4 font-semibold text-institutional-blue">Amigo e Cônjuge</th>
+                    <th className="text-left py-3 px-4 font-semibold text-institutional-blue">Amigo e Parceiro</th>
                     <th className="text-left py-3 px-4 font-semibold text-institutional-blue">WhatsApp</th>
                     <th className="text-left py-3 px-4 font-semibold text-institutional-blue">Instagram</th>
                     <th className="text-left py-3 px-4 font-semibold text-institutional-blue">Cidade</th>

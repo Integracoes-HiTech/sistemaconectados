@@ -161,13 +161,14 @@ export const useFriends = () => {
       console.log('🔄 Atualizando contratos do referrer:', referrerName);
       
       // Buscar o membro referrer pelo nome
-      const { data: referrerMember, error: referrerError } = await supabase
+      const { data: referrerMembers, error: referrerError } = await supabase
         .from('members')
         .select('id, name, contracts_completed')
         .eq('name', referrerName)
         .eq('status', 'Ativo')
-        .is('deleted_at', null)
-        .single();
+        .is('deleted_at', null);
+
+      const referrerMember = referrerMembers?.[0]; // Pegar o primeiro resultado
 
       if (referrerError) {
         console.error('❌ Erro ao buscar referrer:', referrerError);
@@ -210,9 +211,16 @@ export const useFriends = () => {
 
   const updateRanking = async () => {
     try {
+      console.log('🔄 Atualizando ranking dos membros...');
+      
       // Atualizar ranking dos membros
       const { error: membersError } = await supabase.rpc('update_complete_ranking')
-      if (membersError) throw membersError
+      if (membersError) {
+        console.error('❌ Erro ao atualizar ranking dos membros:', membersError);
+        // Continuar mesmo se falhar
+      } else {
+        console.log('✅ Ranking dos membros atualizado');
+      }
 
       // Atualizar ranking dos amigos
       await updateFriendsRanking()
@@ -220,17 +228,83 @@ export const useFriends = () => {
       // Recarregar dados após atualizar ranking
       await fetchFriends()
     } catch (err) {
-      console.error('Erro ao atualizar ranking:', err)
+      console.error('❌ Erro ao atualizar ranking:', err)
     }
   }
 
   const updateFriendsRanking = async () => {
     try {
+      console.log('🔄 Atualizando ranking dos amigos...');
+      
       // Atualizar ranking_position dos amigos baseado em contracts_completed
       const { error } = await supabase.rpc('update_friends_ranking')
-      if (error) throw error
+      if (error) {
+        console.error('❌ Erro ao atualizar ranking dos amigos:', error);
+        // Tentar atualização manual se a função RPC falhar
+        await updateFriendsRankingManually();
+      } else {
+        console.log('✅ Ranking dos amigos atualizado via RPC');
+      }
     } catch (err) {
-      console.error('Erro ao atualizar ranking dos amigos:', err)
+      console.error('❌ Erro ao atualizar ranking dos amigos:', err)
+    }
+  }
+
+  const updateFriendsRankingManually = async () => {
+    try {
+      console.log('🔄 Atualizando ranking dos amigos manualmente...');
+      
+      // Atualizar ranking_position dos amigos baseado em contracts_completed
+      const { error } = await supabase
+        .from('friends')
+        .update({ 
+          ranking_position: null, // Será recalculado
+          updated_at: new Date().toISOString()
+        })
+        .eq('status', 'Ativo')
+        .is('deleted_at', null);
+
+      if (error) {
+        console.error('❌ Erro ao limpar ranking dos amigos:', error);
+        return;
+      }
+
+      // Recalcular ranking_position
+      const { data: friendsData, error: fetchError } = await supabase
+        .from('friends')
+        .select('id, contracts_completed, created_at')
+        .eq('status', 'Ativo')
+        .is('deleted_at', null)
+        .order('contracts_completed', { ascending: false })
+        .order('created_at', { ascending: true });
+
+      if (fetchError) {
+        console.error('❌ Erro ao buscar amigos para ranking:', fetchError);
+        return;
+      }
+
+      // Atualizar ranking_position
+      for (let i = 0; i < friendsData.length; i++) {
+        const friend = friendsData[i];
+        const { error: updateError } = await supabase
+          .from('friends')
+          .update({ 
+            ranking_position: i + 1,
+            ranking_status: friend.contracts_completed >= 15 ? 'Verde' : 
+                          friend.contracts_completed >= 1 ? 'Amarelo' : 'Vermelho',
+            is_top_1500: i < 10,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', friend.id);
+
+        if (updateError) {
+          console.error('❌ Erro ao atualizar ranking do amigo:', updateError);
+        }
+      }
+
+      console.log('✅ Ranking dos amigos atualizado manualmente');
+    } catch (err) {
+      console.error('❌ Erro na atualização manual do ranking:', err);
     }
   }
 
