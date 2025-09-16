@@ -205,12 +205,12 @@ export default function PaidContracts() {
               Fase Bloqueada
             </h2>
             <p className="text-gray-600 mb-4">
-              A fase de contratos pagos ainda não está ativa. Ela será liberada a partir de julho de 2026.
+              A fase de amigos ainda não está ativa. Ela será liberada a partir de julho de 2026.
             </p>
             <div className="bg-yellow-50 p-4 rounded-lg mb-4">
               <p className="text-sm text-yellow-800">
                 <strong>Quando ativada:</strong><br />
-                • Cada membro poderá cadastrar até 15 casais pagos<br />
+                • Cada membro poderá cadastrar até 15 duplas pagas<br />
                 • Total de 22.500 contratos (45.000 pessoas)<br />
                 • Fiscalização via posts do Instagram<br />
                 • Hashtags únicas para cada contrato
@@ -264,10 +264,10 @@ export default function PaidContracts() {
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
               <h1 className="text-2xl font-bold text-institutional-blue">
-                Contratos Pagos - Sistema de Fiscalização
+                Amigos - Sistema de Fiscalização
               </h1>
               <p className="text-muted-foreground mt-1">
-                Gerencie contratos pagos e fiscalize posts do Instagram
+                Gerencie amigos e fiscalize posts do Instagram
               </p>
             </div>
             
@@ -347,7 +347,7 @@ export default function PaidContracts() {
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
               <h3 className="text-xl font-bold text-institutional-blue mb-4">
-                Adicionar Novo Contrato Pago
+                Adicionar Novo Amigo
               </h3>
               
               <form onSubmit={handleAddContract} className="space-y-4">
@@ -529,7 +529,7 @@ export default function PaidContracts() {
               Contratos Cadastrados
             </CardTitle>
             <CardDescription>
-              Lista de todos os contratos pagos cadastrados no sistema
+              Lista de todos os amigos cadastrados no sistema
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -537,7 +537,7 @@ export default function PaidContracts() {
               <table className="w-full border-collapse">
                 <thead>
                   <tr className="border-b border-institutional-light">
-                    <th className="text-left py-3 px-4 font-semibold text-institutional-blue">Casal</th>
+                    <th className="text-left py-3 px-4 font-semibold text-institutional-blue">Dupla</th>
                     <th className="text-left py-3 px-4 font-semibold text-institutional-blue">Contatos</th>
                     <th className="text-left py-3 px-4 font-semibold text-institutional-blue">Membro</th>
                     <th className="text-left py-3 px-4 font-semibold text-institutional-blue">Status</th>

@@ -12,7 +12,7 @@ export interface Member {
   referrer: string
   registration_date: string
   status: 'Ativo' | 'Inativo'
-  // Dados da segunda pessoa (obrigatório - regra do casal)
+  // Dados da segunda pessoa (obrigatório - regra da dupla)
   couple_name: string
   couple_phone: string
   couple_instagram: string
@@ -203,7 +203,7 @@ export const useMembers = (referrer?: string) => {
 
       console.log('✅ Membro inserido com sucesso:', data);
 
-      // Se é um amigo (contrato pago), atualizar contratos do referrer
+      // Se é um amigo, atualizar contratos do referrer
       if (memberData.is_friend && memberData.referrer) {
         await updateReferrerContracts(memberData.referrer);
       }
@@ -348,13 +348,77 @@ export const useMembers = (referrer?: string) => {
     }
   }
 
-  // Função para soft delete (exclusão lógica)
+  // Função para soft delete (exclusão lógica) com cascata
   const softDeleteMember = async (memberId: string) => {
     try {
-      console.log('🗑️ Executando soft delete do membro:', memberId);
+      console.log('🗑️ Executando soft delete do membro com cascata:', memberId);
       
-      const { data, error } = await supabase
-        .rpc('soft_delete_member', { member_id: memberId })
+      // Primeiro tentar a nova função de exclusão em cascata
+      let { data, error } = await supabase
+        .rpc('soft_delete_member_cascade', { member_id: memberId })
+
+      // Se a função de cascata não existir, usar a função original
+      if (error && error.message.includes('function') && error.message.includes('does not exist')) {
+        console.log('⚠️ Função de cascata não encontrada, usando função original...');
+        
+        // Buscar dados do membro para exclusão manual
+        const { data: memberData, error: memberError } = await supabase
+          .from('members')
+          .select('name')
+          .eq('id', memberId)
+          .single();
+
+        if (memberError) {
+          throw memberError;
+        }
+
+        // Excluir membro
+        const { error: deleteError } = await supabase
+          .from('members')
+          .update({ deleted_at: new Date().toISOString() })
+          .eq('id', memberId);
+
+        if (deleteError) {
+          throw deleteError;
+        }
+
+        // Buscar auth_users correspondentes para exclusão física
+        const { data: authUsers, error: authFetchError } = await supabase
+          .from('auth_users')
+          .select('id')
+          .eq('name', memberData.name)
+          .in('role', ['Membro', 'Amigo']);
+
+        if (authFetchError) {
+          console.warn('⚠️ Erro ao buscar auth_users:', authFetchError);
+        }
+
+        if (authUsers && authUsers.length > 0) {
+          // Excluir user_links fisicamente
+          const { error: linksError } = await supabase
+            .from('user_links')
+            .delete()
+            .in('user_id', authUsers.map(au => au.id));
+
+          if (linksError) {
+            console.warn('⚠️ Erro ao excluir user_links:', linksError);
+          }
+
+          // Excluir auth_users fisicamente
+          const { error: authError } = await supabase
+            .from('auth_users')
+            .delete()
+            .eq('name', memberData.name)
+            .in('role', ['Membro', 'Amigo']);
+
+          if (authError) {
+            console.warn('⚠️ Erro ao excluir auth_users:', authError);
+          }
+        }
+
+        data = { success: true };
+        error = null;
+      }
 
       if (error) {
         console.error('❌ Erro no soft delete:', error);

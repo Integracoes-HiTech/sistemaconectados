@@ -76,7 +76,7 @@ export default function Dashboard() {
     }
 
     const confirmRemove = window.confirm(
-      `Tem certeza que deseja excluir o membro "${memberName}"?\n\nO membro será marcado como excluído mas os dados serão mantidos para histórico. Esta ação pode ser desfeita posteriormente.`
+      `Tem certeza que deseja excluir o membro "${memberName}"?`
     );
 
     if (!confirmRemove) return;
@@ -88,7 +88,7 @@ export default function Dashboard() {
       if (result.success) {
         toast({
           title: "Membro excluído",
-          description: `O membro "${memberName}" foi excluído com sucesso. Os dados foram mantidos para histórico.`,
+          description: `O membro "${memberName}" foi excluído com sucesso. Acesso ao sistema e links foram removidos definitivamente.`,
         });
       } else {
         throw new Error(result.error || 'Erro desconhecido');
@@ -114,7 +114,7 @@ export default function Dashboard() {
     }
 
     const confirmRemove = window.confirm(
-      `Tem certeza que deseja excluir o amigo "${friendName}"?\n\nEsta ação marcará o amigo como excluído e atualizará os contadores do membro responsável.`
+      `Tem certeza que deseja excluir o amigo "${friendName}"?`
     );
 
     if (!confirmRemove) return;
@@ -487,7 +487,7 @@ export default function Dashboard() {
                 Tipo de Links de Cadastro de Membros
               </CardTitle>
               <CardDescription>
-                Mudar para cadastrar novos membros ou contratos pagos
+                Mudar para cadastrar novos membros ou amigos
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -501,8 +501,8 @@ export default function Dashboard() {
                   <p className="text-blue-700 text-sm mb-3">
                     Tipo de links atual: <strong>
                       {settings?.member_links_type === 'members' 
-                        ? 'Novos Membros (casais)'
-                        : 'Contratos Pagos (amigos)'
+                        ? 'Novos Membros (duplas)'
+                        : 'Amigos'
                       }
                     </strong>
                   </p>
@@ -559,21 +559,21 @@ export default function Dashboard() {
                       O sistema excedeu o limite de {memberStats?.max_member_limit || 1500} membros. 
                       Atualmente temos {memberStats?.current_member_count || 0} membros cadastrados 
                       ({limitStatus.percentage.toFixed(1)}% do limite).
-                      {isAdmin() && " Considere ativar a fase de contratos pagos ou ajustar o limite."}
+                      {isAdmin() && " Considere ativar a fase de amigos ou ajustar o limite."}
                     </>
                   ) : isReached ? (
                     <>
                       O sistema atingiu o limite de {memberStats?.max_member_limit || 1500} membros. 
                       Atualmente temos {memberStats?.current_member_count || 0} membros cadastrados 
                       ({limitStatus.percentage.toFixed(1)}% do limite).
-                      {isAdmin() && " Considere ativar a fase de contratos pagos."}
+                      {isAdmin() && " Considere ativar a fase de amigos."}
                     </>
                   ) : (
                     <>
                       O sistema está próximo do limite de {memberStats?.max_member_limit || 1500} membros. 
                       Atualmente temos {memberStats?.current_member_count || 0} membros cadastrados 
                       ({limitStatus.percentage.toFixed(1)}% do limite).
-                      {isAdmin() && " Considere ativar a fase de contratos pagos ou ajustar o limite."}
+                      {isAdmin() && " Considere ativar a fase de amigos ou ajustar o limite."}
                     </>
                   )}
                 </p>
@@ -813,24 +813,24 @@ export default function Dashboard() {
         {/* Seção para Membros Não-Administradores */}
         {!isAdmin() && (
           <div className="mb-8">
-            {/* Informações sobre Contratos Pagos */}
+            {/* Informações sobre Amigos */}
             <Card className="shadow-[var(--shadow-card)] border-l-4 border-l-blue-500 mb-6">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-institutional-blue">
                   <CalendarDays className="w-5 h-5" />
-                  Contratos Pagos
+                  Amigos
                 </CardTitle>
                 <CardDescription>
-                  Informações sobre a fase de contratos pagos
+                  Informações sobre a fase de amigos
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
                   <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
-                    <h4 className="font-semibold text-blue-800 mb-2">📅 Fase de Contratos Pagos</h4>
+                    <h4 className="font-semibold text-blue-800 mb-2">📅 Fase de Amigos</h4>
                     <p className="text-blue-700 text-sm mb-2">
-                      A fase de contratos pagos será liberada em julho de 2026. 
-                      Cada membro poderá cadastrar até 15 casais pagos quando ativada.
+                      A fase de amigos será liberada em julho de 2026. 
+                      Cada membro poderá cadastrar até 15 duplas pagas quando ativada.
                     </p>
                     <div className="flex items-center gap-2 text-blue-600">
                       <CalendarDays className="w-4 h-4" />
@@ -844,16 +844,16 @@ export default function Dashboard() {
             </Card>
 
 
-            {/* Tabela dos Seus Contratos Pagos */}
+            {/* Tabela dos Seus Amigos */}
             {settings?.paid_contracts_phase_active && (
               <Card className="shadow-[var(--shadow-card)] border-l-4 border-l-purple-500">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-institutional-blue">
                     <UserCheck className="w-5 h-5" />
-                    Seus Contratos Pagos
+                    Seus Amigos
                   </CardTitle>
                   <CardDescription>
-                    Contratos pagos que você cadastrou
+                    Amigos que você cadastrou
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -861,7 +861,7 @@ export default function Dashboard() {
                     <table className="w-full border-collapse">
                       <thead>
                         <tr className="border-b border-gray-200">
-                          <th className="text-left py-2 px-3 font-semibold text-gray-700">Casal</th>
+                          <th className="text-left py-2 px-3 font-semibold text-gray-700">Dupla</th>
                           <th className="text-left py-2 px-3 font-semibold text-gray-700">Status</th>
                           <th className="text-left py-2 px-3 font-semibold text-gray-700">Data</th>
                         </tr>
@@ -991,7 +991,7 @@ export default function Dashboard() {
         )}
 
 
-        {/* Cards de Contratos Pagos (se a fase estiver ativa) - Apenas Administradores */}
+        {/* Cards de Amigos (se a fase estiver ativa) - Apenas Administradores */}
         {isAdmin() && settings?.paid_contracts_phase_active && (
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
             <Card className="shadow-[var(--shadow-card)] border-l-4 border-l-blue-500">
@@ -1426,7 +1426,7 @@ export default function Dashboard() {
               Ranking dos Amigos 
             </CardTitle>
             <CardDescription>
-              Ranking dos amigos (contratos pagos) 
+              Ranking dos amigos 
             </CardDescription>
             <div className="flex gap-2 mt-4">
               <Button

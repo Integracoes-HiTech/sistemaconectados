@@ -804,7 +804,7 @@ export default function PublicRegister() {
         // 3. Criar credenciais compartilhadas para a dupla
         const userDataForCouple = {
           ...userData,
-          full_name: `${formData.name} e ${formData.couple_name} - Casal`,
+          full_name: `${formData.name} e ${formData.couple_name} - Dupla`,
           display_name: `${formData.name} & ${formData.couple_name}`,
           role: 'Membro'
         };
@@ -819,7 +819,7 @@ export default function PublicRegister() {
         setIsSuccess(true);
         toast({
           title: "Cadastro realizado com sucesso!",
-          description: `Casal cadastrado e vinculado a ${formData.referrer}. Uma conta compartilhada foi criada para ambos.`,
+          description: `Dupla cadastrada e vinculada a ${formData.referrer}. Uma conta compartilhada foi criada para ambos.`,
         });
       }
 
@@ -909,7 +909,7 @@ export default function PublicRegister() {
               >
                 <div className="flex items-center gap-2">
                   <LogIn className="w-5 h-5" />
-                  Entrar no Sistema
+                  Clique aqui para entrar
                 </div>
               </Button>
             )}
@@ -935,7 +935,7 @@ export default function PublicRegister() {
                   <Input
                     value={displayName}
                     onChange={(e) => setDisplayName(e.target.value)}
-                    placeholder="Ex: João & Maria, Casal Silva, etc."
+                    placeholder="Ex: João & Maria, Dupla Silva, etc."
                     className="w-full"
                   />
                 </div>

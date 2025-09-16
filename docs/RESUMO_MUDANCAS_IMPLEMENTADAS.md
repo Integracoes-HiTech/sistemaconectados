@@ -50,7 +50,7 @@ Implementei completamente a nova estrutura solicitada para o sistema de membros 
 - **Bloqueada até julho de 2026** conforme solicitado
 - Interface completa para gerenciar contratos
 - Sistema de verificação de posts do Instagram
-- Cadastro de casais pagos (até 15 por membro)
+- Cadastro de duplas pagas (até 15 por membro)
 
 ---
 
@@ -111,7 +111,7 @@ Implementei completamente a nova estrutura solicitada para o sistema de membros 
 - ✅ Acesso a todos os dados e configurações
 
 ### **⿢ Membros (Meta: 1.500)**
-- ✅ Cada membro = casal (3.000 pessoas)
+- ✅ Cada membro = dupla (3.000 pessoas)
 - ✅ Cadastro via link único com rastreamento
 - ✅ Sistema de alerta automático
 - ✅ Opção de travar ou deixar aberto
@@ -122,7 +122,7 @@ Implementei completamente a nova estrutura solicitada para o sistema de membros 
 - ✅ Sistema de substituição para vermelhos
 
 ### **⿤ Contratos Pagos (Julho 2026)**
-- ✅ 15 casais por membro (30 pessoas)
+- ✅ 15 duplas por membro (30 pessoas)
 - ✅ Total: 22.500 contratos (45.000 pessoas) - disponível em julho 2026
 - ✅ Fiscalização via Instagram obrigatória
 - ✅ Hashtags únicas para cada contrato

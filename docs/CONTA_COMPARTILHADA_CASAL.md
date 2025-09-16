@@ -1,8 +1,8 @@
-# 👫 Conta Compartilhada para Casais
+# 👫 Conta Compartilhada para Duplas
 
 ## 🎯 **Mudança Implementada**
 
-Quando duas pessoas se cadastram juntas (regra do casal), elas agora compartilham:
+Quando duas pessoas se cadastram juntas (regra da dupla), elas agora compartilham:
 1. **As mesmas credenciais de acesso** (usuário e senha)
 2. **O mesmo link de cadastro** para indicar outras pessoas
 
@@ -49,7 +49,7 @@ const credentialsResult = await createUserWithCredentials(userDataForCouple);
 
 #### **Mensagens Atualizadas:**
 - ✅ "Uma conta compartilhada foi criada para ambos"
-- ✅ "O casal compartilha o mesmo usuário, senha e link de cadastro"
+- ✅ "A dupla compartilha o mesmo usuário, senha e link de cadastro"
 - ✅ "Uma conta compartilhada será criada para ambos"
 
 ## 🎨 **Visualização da Interface**
@@ -77,7 +77,7 @@ const credentialsResult = await createUserWithCredentials(userDataForCouple);
 ### **✅ Acesso Compartilhado:**
 - **Usuário**: Instagram da primeira pessoa (sem @)
 - **Senha**: Instagram + últimos 4 dígitos do telefone da primeira pessoa
-- **Nome completo**: "Nome1 e Nome2 - Casal"
+- **Nome completo**: "Nome1 e Nome2 - Dupla"
 
 ### **✅ Link de Cadastro Compartilhado:**
 - Ambos podem usar o mesmo link para indicar outras pessoas
@@ -92,14 +92,14 @@ const credentialsResult = await createUserWithCredentials(userDataForCouple);
 
 ## 🎯 **Vantagens da Conta Compartilhada**
 
-### **👥 Para o Casal:**
+### **👥 Para a Dupla:**
 - ✅ **Simplicidade**: Uma única conta para gerenciar
 - ✅ **Coordenação**: Ambos têm acesso às mesmas informações
 - ✅ **Eficiência**: Não precisam alternar entre contas
 - ✅ **Transparência**: Ambos veem o mesmo progresso
 
 ### **📊 Para o Sistema:**
-- ✅ **Controle**: Uma conta por casal cadastrado
+- ✅ **Controle**: Uma conta por dupla cadastrada
 - ✅ **Rastreamento**: Mais fácil rastrear indicações
 - ✅ **Estatísticas**: Dados mais organizados
 - ✅ **Gestão**: Menos contas para gerenciar
@@ -120,13 +120,13 @@ const credentialsResult = await createUserWithCredentials(userDataForCouple);
 
 ### **Processo de Cadastro:**
 1. **Duas pessoas preenchem o formulário** (regra obrigatória)
-2. **Sistema cria uma conta compartilhada** com nome "Nome1 e Nome2 - Casal"
+2. **Sistema cria uma conta compartilhada** com nome "Nome1 e Nome2 - Dupla"
 3. **Credenciais são geradas** usando dados da primeira pessoa
 4. **Ambos recebem as mesmas credenciais** de acesso
 5. **Link de cadastro é compartilhado** entre ambos
 
 ### **Processo de Login:**
-1. **Qualquer um do casal pode fazer login** com as credenciais
+1. **Qualquer um da dupla pode fazer login** com as credenciais
 2. **Ambos veem o mesmo dashboard** e informações
 3. **Ambos podem usar o mesmo link** para indicar outras pessoas
 4. **Estatísticas são compartilhadas** entre ambos

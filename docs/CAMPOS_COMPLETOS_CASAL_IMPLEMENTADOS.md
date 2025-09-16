@@ -1,8 +1,8 @@
-# 👫 Campos Completos para Casais Implementados
+# 👫 Campos Completos para Duplas Implementados
 
 ## ✅ **Implementação Concluída**
 
-Agora o formulário de cadastro público tem **todos os campos necessários** para ambas as pessoas do casal, garantindo que os mesmos dados sejam coletados e salvos para ambos.
+Agora o formulário de cadastro público tem **todos os campos necessários** para ambas as pessoas da dupla, garantindo que os mesmos dados sejam coletados e salvos para ambos.
 
 ## 🔧 **Campos Implementados**
 
@@ -13,7 +13,7 @@ Agora o formulário de cadastro público tem **todos os campos necessários** pa
 - ✅ **Cidade**: `city`
 - ✅ **Setor**: `sector`
 
-### **Segunda Pessoa (Casal):**
+### **Segunda Pessoa (Dupla):**
 - ✅ **Nome**: `couple_name`
 - ✅ **WhatsApp**: `couple_phone`
 - ✅ **Instagram**: `couple_instagram`

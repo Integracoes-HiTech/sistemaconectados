@@ -50,7 +50,7 @@ export default function Settings() {
             .insert([{
               setting_key: 'member_links_type',
               setting_value: 'members',
-              description: 'Tipo de links gerados pelos membros: members (novos membros) ou friends (contratos pagos)'
+              description: 'Tipo de links gerados pelos membros: members (novos membros) ou friends (amigos)'
             }]);
 
           if (insertError) throw insertError;
@@ -82,7 +82,7 @@ export default function Settings() {
       if (result.success) {
         toast({
           title: "Configuração atualizada!",
-          description: `Tipo de links alterado para: ${linkType === 'members' ? 'Novos Membros' : 'Contratos Pagos'}. Links existentes também foram atualizados (exceto admin).`,
+          description: `Tipo de links alterado para: ${linkType === 'members' ? 'Novos Membros' : 'Amigos'}. Links existentes também foram atualizados (exceto admin).`,
         });
         console.log('✅ Settings: Tipo de links atualizado com sucesso');
       } else {
@@ -243,7 +243,7 @@ export default function Settings() {
               Controle de Tipo de Links
             </CardTitle>
             <CardDescription>
-              Configure se os links gerados pelos membros servem para cadastrar novos membros ou contratos pagos
+              Configure se os links gerados pelos membros servem para cadastrar novos membros ou amigos
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
@@ -254,8 +254,8 @@ export default function Settings() {
                 <div className="w-3 h-3 bg-green-500 rounded-full"></div>
                 <span className="text-gray-700">
                   {settings?.member_links_type === 'members' 
-                    ? 'Links servem para cadastrar novos membros (casais)'
-                    : 'Links servem para cadastrar contratos pagos (amigos)'
+                    ? 'Links servem para cadastrar novos membros (duplas)'
+                    : 'Links servem para cadastrar amigos'
                   }
                 </span>
               </div>
@@ -279,7 +279,7 @@ export default function Settings() {
                     <div>
                       <div className="font-semibold">Novos Membros</div>
                       <div className="text-sm opacity-90">
-                        Links cadastram casais que se tornam membros da rede
+                        Links cadastram duplas que se tornam membros da rede
                       </div>
                     </div>
                   </div>
@@ -297,9 +297,9 @@ export default function Settings() {
                   <div className="flex items-center gap-3">
                     <UserCheck className="w-6 h-6" />
                     <div>
-                      <div className="font-semibold">Contratos Pagos</div>
+                      <div className="font-semibold">Amigos</div>
                       <div className="text-sm opacity-90">
-                        Links cadastram casais que se tornam contratos pagos
+                        Links cadastram duplas que se tornam amigos
                       </div>
                     </div>
                   </div>
@@ -318,8 +318,8 @@ export default function Settings() {
                     </div>
                     <div className="text-sm text-blue-600">
                       {settings?.paid_contracts_phase_active 
-                        ? '.Fase de contratos pagos ativa'
-                        : 'Cada membro poderá cadastrar até 15 casais pagos quando ativada'
+                        ? '.Fase de amigos ativa'
+                        : 'Cada membro poderá cadastrar até 15 duplas pagas quando ativada'
                       }
                     </div>
                   </div>
@@ -404,8 +404,8 @@ export default function Settings() {
             <div className="p-4 bg-yellow-50 rounded-lg border border-yellow-200">
               <h4 className="font-semibold text-yellow-800 mb-2">⚠️ Informações Importantes</h4>
               <ul className="text-yellow-700 text-sm space-y-1">
-                <li>• <strong>Novos Membros:</strong> Cadastram casais que se tornam membros da rede</li>
-                <li>• <strong>Contratos Pagos:</strong> Cadastram casais que se tornam contratos pagos</li>
+                <li>• <strong>Novos Membros:</strong> Cadastram duplas que se tornam membros da rede</li>
+                <li>• <strong>Amigos:</strong> Cadastram duplas que se tornam amigos</li>
                 <li>• A mudança afeta todos os links gerados pelos membros</li>
                 <li>• Links já gerados continuam funcionando com o tipo atual</li>
               </ul>

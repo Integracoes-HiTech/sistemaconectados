@@ -1,4 +1,4 @@
-# 👫 Implementação da Regra do Casal
+# 👫 Implementação da Regra da Dupla
 
 ## 🎯 **Regra Implementada**
 
@@ -21,7 +21,7 @@
 
 #### **Interface Melhorada:**
 - ✅ Separador visual entre dados da primeira e segunda pessoa
-- ✅ Mensagem clara sobre a regra do casal
+- ✅ Mensagem clara sobre a regra da dupla
 - ✅ Informação sobre limite de 1.500 membros e Top 1500
 
 ### **2. Estrutura do Banco Atualizada (`docs/NOVA_ESTRUTURA_SISTEMA_MEMBROS.sql`)**
@@ -34,7 +34,7 @@ CREATE TABLE IF NOT EXISTS members (
   phone VARCHAR(20) NOT NULL,
   instagram VARCHAR(255) NOT NULL,
   
-  -- Dados da segunda pessoa (obrigatório - regra do casal)
+  -- Dados da segunda pessoa (obrigatório - regra da dupla)
   couple_name VARCHAR(255) NOT NULL,
   couple_phone VARCHAR(20) NOT NULL,
   couple_instagram VARCHAR(255) NOT NULL,
@@ -53,7 +53,7 @@ export interface Member {
   phone: string
   instagram: string
   
-  // Dados da segunda pessoa (obrigatório - regra do casal)
+  // Dados da segunda pessoa (obrigatório - regra da dupla)
   couple_name: string
   couple_phone: string
   couple_instagram: string
@@ -114,12 +114,12 @@ export interface Member {
 
 ### **✅ Interface Intuitiva**
 - Separador visual claro entre as duas pessoas
-- Mensagem destacada sobre a regra do casal
+- Mensagem destacada sobre a regra da dupla
 - Informação sobre limite e ranking
 
 ### **✅ Banco de Dados Atualizado**
 - Campos para segunda pessoa na tabela members
-- Estrutura preparada para casais
+- Estrutura preparada para duplas
 
 ### **✅ Tela de Sucesso**
 - Credenciais para ambas as pessoas
@@ -146,15 +146,15 @@ export interface Member {
 - ✅ Estrutura do banco atualizada
 - ✅ Hook useMembers atualizado
 - ✅ Tela de sucesso atualizada
-- ✅ Mensagens sobre regra do casal
+- ✅ Mensagens sobre regra da dupla
 - ✅ Informação sobre limite e ranking
 
 ## 🎉 **Resultado Final**
 
-Agora o sistema implementa completamente a regra do casal:
+Agora o sistema implementa completamente a regra da dupla:
 
 1. **⚠️ Ninguém entra sozinho** - Formulário obriga cadastro de duas pessoas
-2. **👫 Cada membro = casal** - Banco de dados armazena dados de ambos
+2. **👫 Cada membro = dupla** - Banco de dados armazena dados de ambos
 3. **📊 Limite de 1.500 membros** - Sistema alerta quando atingir limite
 4. **🏆 Top 1.500 do ranking** - Apenas os melhores valem, resto vira reserva
 

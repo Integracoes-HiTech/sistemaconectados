@@ -13,7 +13,7 @@ export interface Friend {
   referrer: string
   registration_date: string
   status: 'Ativo' | 'Inativo'
-  // Dados da segunda pessoa (obrigatório - regra do casal)
+  // Dados da segunda pessoa (obrigatório - regra da dupla)
   couple_name: string
   couple_phone: string
   couple_instagram: string

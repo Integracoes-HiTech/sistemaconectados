@@ -135,13 +135,13 @@ export const useExportReports = () => {
     exportToExcel(data, 'membros.xlsx', 'Membros')
   }, [exportToExcel])
 
-  // Exportar contratos pagos para Excel
+  // Exportar amigos para Excel
   const exportContractsToExcel = useCallback((contracts: Record<string, unknown>[]) => {
     const data = contracts.map(contract => ({
       'ID': contract.id,
       'Membro Responsável': (contract.member_data as Record<string, unknown>)?.name || 'N/A',
-      'Casal 1': contract.couple_name_1,
-      'Casal 2': contract.couple_name_2,
+      'Dupla 1': contract.couple_name_1,
+      'Dupla 2': contract.couple_name_2,
       'WhatsApp 1': contract.couple_phone_1,
       'WhatsApp 2': contract.couple_phone_2,
       'Instagram 1': contract.couple_instagram_1,
@@ -153,7 +153,7 @@ export const useExportReports = () => {
       'Post Verificado 2': contract.post_verified_2 ? 'Sim' : 'Não'
     }))
 
-    exportToExcel(data, 'contratos_pagos.xlsx', 'Contratos Pagos')
+    exportToExcel(data, 'amigos.xlsx', 'Amigos')
   }, [exportToExcel])
 
   // Exportar estatísticas para Excel
