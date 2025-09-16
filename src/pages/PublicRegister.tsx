@@ -870,7 +870,7 @@ export default function PublicRegister() {
               <div className="space-y-3 text-sm">
                 <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
                   <p className="font-medium text-blue-800 mb-2">👫 Conta Compartilhada</p>
-                  /<p className="text-blue-700"><strong>Usuário:</strong> {formData.instagram.replace('@', '')}</p>
+                  <p className="text-blue-700"><strong>Usuário:</strong> {formData.instagram.replace('@', '')}</p>
                   <p className="text-blue-700"><strong>Senha:</strong> {formData.instagram.replace('@', '')}{formData.phone.slice(-4)}</p>
                   <p className="text-blue-600 text-xs mt-2">
                     Esta conta é compartilhada entre <strong>{formData.name}</strong> e <strong>{formData.couple_name}</strong>
