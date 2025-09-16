@@ -139,11 +139,32 @@ export const useExportReports = () => {
     exportToExcel(data, 'estatisticas.xlsx', 'Estatísticas')
   }, [exportToExcel])
 
+  // Exportar amigos para Excel
+  const exportFriendsToExcel = useCallback((friends: any[]) => {
+    const data = friends.map(friend => ({
+      'Posição': friend.calculated_position || friend.ranking_position || 'N/A',
+      'Nome': friend.name,
+      'Parceiro': friend.couple_name || 'N/A',
+      'WhatsApp': friend.phone,
+      'Instagram': friend.instagram,
+      'Cidade': friend.city,
+      'Setor': friend.sector,
+      'Contratos Completos': friend.contracts_completed,
+      'Status': friend.ranking_status,
+      'Indicado por': friend.member_name || friend.referrer,
+      'Data de Cadastro': new Date(friend.created_at || friend.registration_date).toLocaleDateString('pt-BR'),
+      'Top 1500': friend.is_top_1500 ? 'Sim' : 'Não'
+    }))
+
+    exportToExcel(data, 'amigos.xlsx', 'Amigos')
+  }, [exportToExcel])
+
   return {
     exportToPDF,
     exportToExcel,
     exportMembersToExcel,
     exportContractsToExcel,
-    exportStatsToExcel
+    exportStatsToExcel,
+    exportFriendsToExcel
   }
 }

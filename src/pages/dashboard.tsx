@@ -102,6 +102,44 @@ export default function Dashboard() {
     }
   };
 
+  // Função para remover amigo (soft delete - apenas administradores)
+  const handleRemoveFriend = async (friendId: string, friendName: string) => {
+    if (!isAdmin()) {
+      toast({
+        title: "Acesso negado",
+        description: "Apenas administradores podem remover amigos.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const confirmRemove = window.confirm(
+      `Tem certeza que deseja excluir o amigo "${friendName}"?\n\nEsta ação marcará o amigo como excluído e atualizará os contadores do membro responsável.`
+    );
+
+    if (!confirmRemove) return;
+
+    try {
+      const result = await softDeleteFriend(friendId);
+      
+      if (result.success) {
+        toast({
+          title: "✅ Amigo excluído",
+          description: `O amigo "${friendName}" foi excluído com sucesso.`,
+        });
+      } else {
+        throw new Error(result.error || "Erro desconhecido");
+      }
+    } catch (error) {
+      console.error("Erro ao excluir amigo:", error);
+      toast({
+        title: "❌ Erro ao excluir",
+        description: error instanceof Error ? error.message : "Erro ao excluir amigo",
+        variant: "destructive",
+      });
+    }
+  };
+
   // Lógica de filtro por referrer:
   // - Admin: vê todos os usuários (sem filtro)
   // - Outros roles: vê apenas usuários que eles indicaram (filtro por user.full_name)
@@ -153,7 +191,8 @@ export default function Dashboard() {
     friends, 
     loading: friendsLoading,
     error: friendsError,
-    getFriendsStats
+    getFriendsStats,
+    softDeleteFriend
   } = useFriendsRanking();
   
   
@@ -161,7 +200,8 @@ export default function Dashboard() {
     exportToPDF, 
     exportMembersToExcel, 
     exportContractsToExcel, 
-    exportStatsToExcel 
+    exportStatsToExcel,
+    exportFriendsToExcel
   } = useExportReports();
   
   const { 
@@ -543,29 +583,7 @@ export default function Dashboard() {
         );
       })()}
 
-      {/* Botão para Ativar Contratos Pagos (apenas para admin) */}
-      {isAdmin() && (
-        <div className="mb-8 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="text-blue-600 text-2xl">📅</div>
-              <div>
-                <h3 className="font-semibold text-blue-800">Fase de Contratos Pagos</h3>
-                <p className="text-blue-700 text-sm">
-                  A fase de contratos pagos será liberada em julho de 2026. 
-                  Cada membro poderá cadastrar até 15 casais pagos quando ativada.
-                </p>
-              </div>
-            </div>
-            <Button
-              disabled={true}
-              className="bg-gray-400 text-gray-600 cursor-not-allowed"
-            >
-              Disponível em Julho 2026
-            </Button>
-          </div>
-        </div>
-      )}
+  
 
         {/* Gráficos de Estatísticas - Primeira Linha (Apenas Administradores) */}
         {isAdmin() && (
@@ -1321,9 +1339,9 @@ export default function Dashboard() {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm font-medium text-muted-foreground">Total de Amigos</p>
-                      <p className="text-2xl font-bold text-institutional-blue">{filteredFriends.length}</p>
+                      <p className="text-2xl font-bold text-institutional-blue">{friends.length}</p>
                       <p className="text-xs text-muted-foreground">
-                        {filteredFriends.length} amigos cadastrados
+                        {friends.length} amigos cadastrados
                       </p>
                     </div>
                     <div className="p-3 rounded-full bg-institutional-light">
@@ -1350,7 +1368,21 @@ export default function Dashboard() {
             <div className="flex gap-2 mt-4">
               <Button
                 size="sm"
-                onClick={() => {/* TODO: Implementar exportação */}}
+                onClick={async () => {
+                  try {
+                    await exportFriendsToExcel(filteredFriends);
+                    toast({
+                      title: "✅ Excel exportado",
+                      description: "Arquivo Excel dos amigos foi baixado com sucesso!",
+                    });
+                  } catch (error) {
+                    toast({
+                      title: "❌ Erro na exportação",
+                      description: error instanceof Error ? error.message : "Erro ao exportar Excel",
+                      variant: "destructive",
+                    });
+                  }
+                }}
                 className="bg-green-600 hover:bg-green-700 text-white"
               >
                 <BarChart3 className="w-4 h-4 mr-2" />
@@ -1358,7 +1390,21 @@ export default function Dashboard() {
               </Button>
               <Button
                 size="sm"
-                onClick={() => {/* TODO: Implementar exportação PDF */}}
+                onClick={async () => {
+                  try {
+                    await exportToPDF('friends-table', 'ranking_amigos.pdf');
+                    toast({
+                      title: "✅ PDF exportado",
+                      description: "Arquivo PDF dos amigos foi baixado com sucesso!",
+                    });
+                  } catch (error) {
+                    toast({
+                      title: "❌ Erro na exportação",
+                      description: error instanceof Error ? error.message : "Erro ao exportar PDF",
+                      variant: "destructive",
+                    });
+                  }
+                }}
                 className="bg-red-600 hover:bg-red-700 text-white"
               >
                 <BarChart3 className="w-4 h-4 mr-2" />
@@ -1401,7 +1447,7 @@ export default function Dashboard() {
 
             {/* Tabela de Ranking dos Amigos */}
             <div className="overflow-x-auto" id="friends-ranking-table">
-              <table className="w-full border-collapse">
+              <table id="friends-table" className="w-full border-collapse">
                 <thead>
                   <tr className="border-b border-institutional-light">
                     <th className="text-left py-3 px-4 font-semibold text-institutional-blue">Posição</th>
@@ -1482,7 +1528,7 @@ export default function Dashboard() {
                           <Button
                             size="sm"
                             variant="destructive"
-                            onClick={() => handleRemoveMember(friend.id, friend.name)}
+                            onClick={() => handleRemoveFriend(friend.id, friend.name)}
                             className="bg-red-600 hover:bg-red-700 text-white"
                           >
                             <UserIcon className="w-4 h-4 mr-1" />

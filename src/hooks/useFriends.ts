@@ -324,11 +324,11 @@ export const useFriends = () => {
         throw fetchError;
       }
 
+      // Atualizar apenas o campo deleted_at
       const { data, error } = await supabase
         .from('friends')
         .update({ 
-          deleted_at: new Date().toISOString(),
-          status: 'Inativo'
+          deleted_at: new Date().toISOString()
         })
         .eq('id', friendId)
         .select()

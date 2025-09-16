@@ -196,7 +196,7 @@ export default function PublicRegister() {
         setCepData(dadosCep);
       }
 
-      // Preencher campos automaticamente
+      // Limpar campos primeiro e depois preencher com novos dados
       setFormData(prev => ({
         ...prev,
         [isCouple ? 'couple_city' : 'city']: dadosCep.cidade,
@@ -574,10 +574,21 @@ export default function PublicRegister() {
       // Formatar CEP e buscar automaticamente quando completo
       processedValue = formatarCep(value);
       
-      // Buscar CEP automaticamente quando tiver 8 dígitos
-      const cepLimpo = limparCep(value);
-      if (cepLimpo.length === 8 && validarFormatoCep(cepLimpo)) {
-        buscarCepEPreencher(cepLimpo, field === 'couple_cep');
+      // Limpar campos relacionados quando CEP for apagado
+      if (value.trim() === '') {
+        if (field === 'cep') {
+          setFormData(prev => ({ ...prev, city: '', sector: '' }));
+          setCepData(null);
+        } else {
+          setFormData(prev => ({ ...prev, couple_city: '', couple_sector: '' }));
+          setCoupleCepData(null);
+        }
+      } else {
+        // Buscar CEP automaticamente quando tiver 8 dígitos
+        const cepLimpo = limparCep(value);
+        if (cepLimpo.length === 8 && validarFormatoCep(cepLimpo)) {
+          buscarCepEPreencher(cepLimpo, field === 'couple_cep');
+        }
       }
     }
     
@@ -750,7 +761,6 @@ export default function PublicRegister() {
           name: formData.name.trim(),
           phone: formData.phone,
           instagram: formData.instagram.trim(),
-          cep: formData.cep.trim(),
           city: formData.city.trim(),
           sector: formData.sector.trim(),
           referrer: formData.referrer,
@@ -760,7 +770,6 @@ export default function PublicRegister() {
           couple_name: formData.couple_name.trim(),
           couple_phone: formData.couple_phone,
           couple_instagram: formData.couple_instagram.trim(),
-          couple_cep: formData.couple_cep.trim(),
           couple_city: formData.couple_city.trim(),
           couple_sector: formData.couple_sector.trim()
         };
@@ -1117,10 +1126,11 @@ export default function PublicRegister() {
             <Building className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
             <Input
               type="text"
-              placeholder="Cidade"
-              value={formData.city}
+              placeholder="Cidade (preenchida automaticamente pelo CEP)"
+            value={formData.city}
               onChange={(e) => handleInputChange('city', e.target.value)}
-              className={`pl-12 h-12 bg-gray-800 border-gray-700 text-white placeholder-gray-400 focus:border-institutional-gold focus:ring-institutional-gold rounded-lg ${formErrors.city ? 'border-red-500' : ''}`}
+              className={`pl-12 h-12 bg-gray-600 border-gray-600 text-white placeholder-gray-500 rounded-lg cursor-not-allowed ${formErrors.city ? 'border-red-500' : ''}`}
+              disabled
               required
             />
           </div>
@@ -1138,10 +1148,11 @@ export default function PublicRegister() {
             <MapPin className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
             <Input
               type="text"
-              placeholder="Setor"
-              value={formData.sector}
+              placeholder="Setor (preenchido automaticamente pelo CEP)"
+            value={formData.sector}
               onChange={(e) => handleInputChange('sector', e.target.value)}
-              className={`pl-12 h-12 bg-gray-800 border-gray-700 text-white placeholder-gray-400 focus:border-institutional-gold focus:ring-institutional-gold rounded-lg ${formErrors.sector ? 'border-red-500' : ''}`}
+              className={`pl-12 h-12 bg-gray-600 border-gray-600 text-white placeholder-gray-500 rounded-lg cursor-not-allowed ${formErrors.sector ? 'border-red-500' : ''}`}
+              disabled
               required
             />
           </div>
@@ -1235,28 +1246,6 @@ export default function PublicRegister() {
           )}
         </div>
 
-        {/* Campo WhatsApp da Segunda Pessoa */}
-        <div className="space-y-1">
-          <div className="relative">
-            <Phone className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
-            <Input
-              type="tel"
-              placeholder="WhatsApp do Parceiro (62) 99999-9999"
-              value={formData.couple_phone}
-              onChange={(e) => handleInputChange('couple_phone', e.target.value)}
-              className={`pl-12 h-12 bg-gray-800 border-gray-700 text-white placeholder-gray-400 focus:border-institutional-gold focus:ring-institutional-gold rounded-lg ${formErrors.couple_phone ? 'border-red-500' : ''}`}
-              maxLength={15}
-              required
-            />
-          </div>
-          {formErrors.couple_phone && (
-            <div className="flex items-center gap-1 text-red-400 text-sm">
-              <AlertCircle className="w-4 h-4" />
-              <span>{formErrors.couple_phone}</span>
-            </div>
-          )}
-        </div>
-
         {/* Campo CEP do Parceiro */}
         <div className="space-y-1">
           <div className="relative">
@@ -1273,7 +1262,7 @@ export default function PublicRegister() {
             {coupleCepLoading && (
               <div className="absolute right-4 top-1/2 transform -translate-y-1/2">
                 <div className="w-5 h-5 border-2 border-institutional-gold border-t-transparent rounded-full animate-spin" />
-              </div>
+          </div>
             )}
           </div>
           {formErrors.couple_cep && (
@@ -1291,10 +1280,11 @@ export default function PublicRegister() {
             <Building className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
             <Input
               type="text"
-              placeholder="Cidade do Parceiro"
-              value={formData.couple_city}
+              placeholder="Cidade do Parceiro (preenchida automaticamente pelo CEP)"
+            value={formData.couple_city}
               onChange={(e) => handleInputChange('couple_city', e.target.value)}
-              className={`pl-12 h-12 bg-gray-800 border-gray-700 text-white placeholder-gray-400 focus:border-institutional-gold focus:ring-institutional-gold rounded-lg ${formErrors.couple_city ? 'border-red-500' : ''}`}
+              className={`pl-12 h-12 bg-gray-600 border-gray-600 text-white placeholder-gray-500 rounded-lg cursor-not-allowed ${formErrors.couple_city ? 'border-red-500' : ''}`}
+              disabled
               required
             />
           </div>
@@ -1312,10 +1302,11 @@ export default function PublicRegister() {
             <MapPin className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
             <Input
               type="text"
-              placeholder="Setor do Parceiro"
-              value={formData.couple_sector}
+              placeholder="Setor do Parceiro (preenchido automaticamente pelo CEP)"
+            value={formData.couple_sector}
               onChange={(e) => handleInputChange('couple_sector', e.target.value)}
-              className={`pl-12 h-12 bg-gray-800 border-gray-700 text-white placeholder-gray-400 focus:border-institutional-gold focus:ring-institutional-gold rounded-lg ${formErrors.couple_sector ? 'border-red-500' : ''}`}
+              className={`pl-12 h-12 bg-gray-600 border-gray-600 text-white placeholder-gray-500 rounded-lg cursor-not-allowed ${formErrors.couple_sector ? 'border-red-500' : ''}`}
+              disabled
               required
             />
           </div>
@@ -1323,6 +1314,28 @@ export default function PublicRegister() {
             <div className="flex items-center gap-1 text-red-400 text-sm">
               <AlertCircle className="w-4 h-4" />
               <span>{formErrors.couple_sector}</span>
+            </div>
+          )}
+        </div>
+
+        {/* Campo WhatsApp do Parceiro */}
+        <div className="space-y-1">
+          <div className="relative">
+            <Phone className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
+            <Input
+              type="tel"
+              placeholder="WhatsApp do Parceiro (62) 99999-9999"
+              value={formData.couple_phone}
+              onChange={(e) => handleInputChange('couple_phone', e.target.value)}
+              className={`pl-12 h-12 bg-gray-800 border-gray-700 text-white placeholder-gray-400 focus:border-institutional-gold focus:ring-institutional-gold rounded-lg ${formErrors.couple_phone ? 'border-red-500' : ''}`}
+              maxLength={15}
+              required
+            />
+          </div>
+          {formErrors.couple_phone && (
+            <div className="flex items-center gap-1 text-red-400 text-sm">
+              <AlertCircle className="w-4 h-4" />
+              <span>{formErrors.couple_phone}</span>
             </div>
           )}
         </div>
