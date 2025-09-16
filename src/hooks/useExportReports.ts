@@ -16,6 +16,13 @@ export const useExportReports = () => {
         throw new Error(`Elemento com ID "${elementId}" não encontrado`)
       }
 
+      // Verificar se o elemento tem conteúdo (tabela com dados)
+      const tableRows = element.querySelectorAll('tbody tr')
+      if (tableRows.length === 0) {
+        console.warn('⚠️ Tabela vazia detectada')
+        throw new Error('Não é possível gerar um relatório sem dados')
+      }
+
       console.log('✅ Elemento encontrado, gerando canvas...')
       
       const canvas = await html2canvas(element, {
@@ -151,6 +158,16 @@ export const useExportReports = () => {
 
   // Exportar estatísticas para Excel
   const exportStatsToExcel = useCallback((stats: Record<string, unknown>) => {
+    console.log('📊 Exportando estatísticas do sistema')
+    
+    // Verificar se há dados válidos para exportar
+    const totalMembers = Number(stats.total_members) || 0
+    const currentCount = Number(stats.current_member_count) || 0
+    
+    if (totalMembers === 0 && currentCount === 0) {
+      throw new Error('Não é possível gerar um relatório sem dados')
+    }
+
     const data = [
       { 'Métrica': 'Total de Membros', 'Valor': stats.total_members || 0 },
       { 'Métrica': 'Membros Verdes', 'Valor': stats.green_members || 0 },
@@ -165,23 +182,26 @@ export const useExportReports = () => {
   }, [exportToExcel])
 
   // Exportar amigos para Excel
-  const exportFriendsToExcel = useCallback((friends: Record<string, unknown>[]) => {
+  const exportFriendsToExcel = useCallback((friends: unknown[]) => {
     console.log(`📊 Exportando ${friends.length} amigos (limite máximo: 22.500)`)
     
-    const data = friends.map(friend => ({
-      'Posição': friend.calculated_position || friend.ranking_position || 'N/A',
-      'Nome': friend.name,
-      'Parceiro': friend.couple_name || 'N/A',
-      'WhatsApp': friend.phone,
-      'Instagram': friend.instagram,
-      'Cidade': friend.city,
-      'Setor': friend.sector,
-      'Contratos Completos': friend.contracts_completed,
-      'Status': friend.ranking_status,
-      'Indicado por': friend.member_name || friend.referrer,
-      'Data de Cadastro': new Date((friend.created_at || friend.registration_date) as string).toLocaleDateString('pt-BR'),
-      'Top 1500': friend.is_top_1500 ? 'Sim' : 'Não'
-    }))
+    const data = friends.map(friend => {
+      const f = friend as Record<string, unknown>
+      return {
+        'Posição': f.calculated_position || f.ranking_position || 'N/A',
+        'Nome': f.name,
+        'Parceiro': f.couple_name || 'N/A',
+        'WhatsApp': f.phone,
+        'Instagram': f.instagram,
+        'Cidade': f.city,
+        'Setor': f.sector,
+        'Contratos Completos': f.contracts_completed,
+        'Status': f.ranking_status,
+        'Indicado por': f.member_name || f.referrer,
+        'Data de Cadastro': new Date((f.created_at || f.registration_date) as string).toLocaleDateString('pt-BR'),
+        'Top 1500': f.is_top_1500 ? 'Sim' : 'Não'
+      }
+    })
 
     exportToExcel(data, 'amigos.xlsx', 'Amigos')
   }, [exportToExcel])

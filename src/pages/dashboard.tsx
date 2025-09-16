@@ -892,7 +892,31 @@ export default function Dashboard() {
               <div className="flex gap-2">
                 <Button
                   size="sm"
-                  onClick={() => exportStatsToExcel(memberStats)}
+                  onClick={() => {
+                    try {
+                      // Verificar se há dados para exportar
+                      if (!memberStats || (memberStats.total_members === 0 && memberStats.current_member_count === 0)) {
+                        toast({
+                          title: "⚠️ Nenhum dado para exportar",
+                          description: "Não é possível gerar um relatório sem dados",
+                          variant: "destructive",
+                        });
+                        return;
+                      }
+
+                      exportStatsToExcel(memberStats as unknown as Record<string, unknown>);
+                      toast({
+                        title: "✅ Excel exportado",
+                        description: "Arquivo Excel das estatísticas foi baixado com sucesso!",
+                      });
+                    } catch (error) {
+                      toast({
+                        title: "❌ Erro na exportação",
+                        description: error instanceof Error ? error.message : "Erro ao exportar Excel",
+                        variant: "destructive",
+                      });
+                    }
+                  }}
                   className="bg-green-600 hover:bg-green-700 text-white"
                 >
                   <BarChart3 className="w-4 h-4 mr-2" />
@@ -1018,7 +1042,7 @@ export default function Dashboard() {
                       }
 
                       // Exportar TODOS os membros filtrados, não apenas os da página atual
-                      await exportMembersToExcel(filteredMembers);
+                      await exportMembersToExcel(filteredMembers as unknown as Record<string, unknown>[]);
                       toast({
                         title: "✅ Excel exportado",
                         description: `Arquivo Excel com ${filteredMembers.length} membros foi baixado com sucesso!`,
@@ -1040,10 +1064,20 @@ export default function Dashboard() {
                   size="sm"
                   onClick={async () => {
                     try {
+                      // Verificar se há dados para exportar
+                      if (!filteredMembers || filteredMembers.length === 0) {
+                        toast({
+                          title: "⚠️ Nenhum dado para exportar",
+                          description: "Não é possível gerar um relatório sem dados",
+                          variant: "destructive",
+                        });
+                        return;
+                      }
+
                       await exportToPDF('members-table', 'ranking_membros.pdf');
                       toast({
                         title: "✅ PDF exportado",
-                        description: "Arquivo PDF dos membros foi baixado com sucesso!",
+                        description: `Arquivo PDF com ${filteredMembers.length} membros foi baixado com sucesso!`,
                       });
                     } catch (error) {
                       toast({
@@ -1432,10 +1466,20 @@ export default function Dashboard() {
                 size="sm"
                 onClick={async () => {
                   try {
+                    // Verificar se há dados para exportar
+                    if (!filteredFriends || filteredFriends.length === 0) {
+                      toast({
+                        title: "⚠️ Nenhum dado para exportar",
+                        description: "Não é possível gerar um relatório sem dados",
+                        variant: "destructive",
+                      });
+                      return;
+                    }
+
                     await exportToPDF('friends-table', 'ranking_amigos.pdf');
                     toast({
                       title: "✅ PDF exportado",
-                      description: "Arquivo PDF dos amigos foi baixado com sucesso!",
+                      description: `Arquivo PDF com ${filteredFriends.length} amigos foi baixado com sucesso!`,
                     });
                   } catch (error) {
                     toast({
