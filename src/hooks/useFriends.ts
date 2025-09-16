@@ -70,39 +70,44 @@ export const useFriends = () => {
       // Buscar o ID do membro que está cadastrando o amigo
       console.log('🔍 Buscando membro referrer:', friendData.referrer);
       
-      let { data: memberData, error: memberError } = await supabase
+      // Primeiro tentar busca exata
+      let { data: membersData, error: memberError } = await supabase
         .from('members')
         .select('id, name')
         .eq('name', friendData.referrer)
         .eq('status', 'Ativo')
-        .is('deleted_at', null)
-        .single();
+        .is('deleted_at', null);
 
-      console.log('🔍 Resultado da busca do membro:', { memberData, memberError });
+      console.log('🔍 Resultado da busca exata:', { membersData, memberError });
 
       if (memberError) {
         console.error('❌ Erro ao buscar membro:', memberError);
         throw new Error(`Erro ao buscar membro referrer: ${memberError.message}`);
       }
 
+      let memberData = membersData?.[0]; // Pegar o primeiro resultado
+
       if (!memberData) {
         // Tentar buscar com ILIKE para case-insensitive
         console.log('🔍 Tentando busca case-insensitive...');
-        const { data: memberDataCaseInsensitive, error: memberErrorCaseInsensitive } = await supabase
+        const { data: membersDataCaseInsensitive, error: memberErrorCaseInsensitive } = await supabase
           .from('members')
           .select('id, name')
           .ilike('name', friendData.referrer)
           .eq('status', 'Ativo')
-          .is('deleted_at', null)
-          .single();
+          .is('deleted_at', null);
 
-        console.log('🔍 Resultado da busca case-insensitive:', { memberDataCaseInsensitive, memberErrorCaseInsensitive });
+        console.log('🔍 Resultado da busca case-insensitive:', { membersDataCaseInsensitive, memberErrorCaseInsensitive });
 
-        if (memberErrorCaseInsensitive || !memberDataCaseInsensitive) {
+        if (memberErrorCaseInsensitive) {
+          throw new Error(`Erro ao buscar membro referrer: ${memberErrorCaseInsensitive.message}`);
+        }
+
+        memberData = membersDataCaseInsensitive?.[0]; // Pegar o primeiro resultado
+
+        if (!memberData) {
           throw new Error(`Membro referrer "${friendData.referrer}" não encontrado na tabela members`);
         }
-        
-        memberData = memberDataCaseInsensitive;
       }
 
       console.log('🔍 Membro referrer encontrado:', memberData);
