@@ -1007,6 +1007,16 @@ export default function Dashboard() {
                   size="sm"
                   onClick={async () => {
                     try {
+                      // Verificar se há dados para exportar
+                      if (!filteredMembers || filteredMembers.length === 0) {
+                        toast({
+                          title: "⚠️ Nenhum dado para exportar",
+                          description: "Não é possível gerar um relatório sem dados",
+                          variant: "destructive",
+                        });
+                        return;
+                      }
+
                       // Exportar TODOS os membros filtrados, não apenas os da página atual
                       await exportMembersToExcel(filteredMembers);
                       toast({
@@ -1389,6 +1399,16 @@ export default function Dashboard() {
                 size="sm"
                 onClick={async () => {
                   try {
+                    // Verificar se há dados para exportar
+                    if (!filteredFriends || filteredFriends.length === 0) {
+                      toast({
+                        title: "⚠️ Nenhum dado para exportar",
+                        description: "Não é possível gerar um relatório sem dados",
+                        variant: "destructive",
+                      });
+                      return;
+                    }
+
                     // Exportar TODOS os amigos filtrados, não apenas os da página atual
                     await exportFriendsToExcel(filteredFriends);
                     toast({

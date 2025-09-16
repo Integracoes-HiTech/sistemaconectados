@@ -1011,7 +1011,7 @@ export default function PublicRegister() {
                     }}
                     className="flex-1 bg-institutional-gold hover:bg-institutional-gold/90 text-institutional-blue"
                   >
-                    Confirmar e Entrar
+                    Clique aqui para entrar
                   </Button>
                 </div>
               </div>

@@ -61,12 +61,12 @@ export const useExportReports = () => {
   }, [])
 
   // Exportar dados para Excel
-  const exportToExcel = useCallback((data: any[], filename: string = 'relatorio.xlsx', sheetName: string = 'Relatório') => {
+  const exportToExcel = useCallback((data: Record<string, unknown>[], filename: string = 'relatorio.xlsx', sheetName: string = 'Relatório') => {
     try {
       console.log('🔍 Tentando exportar Excel:', filename, 'com', data.length, 'registros')
       
       if (!data || data.length === 0) {
-        throw new Error('Nenhum dado para exportar')
+        throw new Error('Não é possível gerar um relatório sem dados')
       }
 
       // Para grandes volumes (>10.000 registros), usar processamento em chunks
@@ -107,7 +107,7 @@ export const useExportReports = () => {
   }, [])
 
   // Exportar membros para Excel
-  const exportMembersToExcel = useCallback((members: any[]) => {
+  const exportMembersToExcel = useCallback((members: Record<string, unknown>[]) => {
     console.log(`📊 Exportando ${members.length} membros (limite máximo: 1.500)`)
     
     const data = members.map(member => ({
@@ -121,7 +121,7 @@ export const useExportReports = () => {
       'Contratos Completos': member.contracts_completed,
       'Status': member.ranking_status,
       'Indicado por': member.referrer,
-      'Data de Cadastro': new Date(member.registration_date).toLocaleDateString('pt-BR'),
+      'Data de Cadastro': new Date(member.registration_date as string).toLocaleDateString('pt-BR'),
       'Top 1500': member.is_top_1500 ? 'Sim' : 'Não'
     }))
 
@@ -129,10 +129,10 @@ export const useExportReports = () => {
   }, [exportToExcel])
 
   // Exportar contratos pagos para Excel
-  const exportContractsToExcel = useCallback((contracts: any[]) => {
+  const exportContractsToExcel = useCallback((contracts: Record<string, unknown>[]) => {
     const data = contracts.map(contract => ({
       'ID': contract.id,
-      'Membro Responsável': contract.member_data?.name || 'N/A',
+      'Membro Responsável': (contract.member_data as Record<string, unknown>)?.name || 'N/A',
       'Casal 1': contract.couple_name_1,
       'Casal 2': contract.couple_name_2,
       'WhatsApp 1': contract.couple_phone_1,
@@ -140,8 +140,8 @@ export const useExportReports = () => {
       'Instagram 1': contract.couple_instagram_1,
       'Instagram 2': contract.couple_instagram_2,
       'Status': contract.contract_status,
-      'Data do Contrato': new Date(contract.contract_date).toLocaleDateString('pt-BR'),
-      'Data de Conclusão': contract.completion_date ? new Date(contract.completion_date).toLocaleDateString('pt-BR') : 'N/A',
+      'Data do Contrato': new Date(contract.contract_date as string).toLocaleDateString('pt-BR'),
+      'Data de Conclusão': contract.completion_date ? new Date(contract.completion_date as string).toLocaleDateString('pt-BR') : 'N/A',
       'Post Verificado 1': contract.post_verified_1 ? 'Sim' : 'Não',
       'Post Verificado 2': contract.post_verified_2 ? 'Sim' : 'Não'
     }))
@@ -150,7 +150,7 @@ export const useExportReports = () => {
   }, [exportToExcel])
 
   // Exportar estatísticas para Excel
-  const exportStatsToExcel = useCallback((stats: any) => {
+  const exportStatsToExcel = useCallback((stats: Record<string, unknown>) => {
     const data = [
       { 'Métrica': 'Total de Membros', 'Valor': stats.total_members || 0 },
       { 'Métrica': 'Membros Verdes', 'Valor': stats.green_members || 0 },
@@ -165,7 +165,7 @@ export const useExportReports = () => {
   }, [exportToExcel])
 
   // Exportar amigos para Excel
-  const exportFriendsToExcel = useCallback((friends: any[]) => {
+  const exportFriendsToExcel = useCallback((friends: Record<string, unknown>[]) => {
     console.log(`📊 Exportando ${friends.length} amigos (limite máximo: 22.500)`)
     
     const data = friends.map(friend => ({
@@ -179,7 +179,7 @@ export const useExportReports = () => {
       'Contratos Completos': friend.contracts_completed,
       'Status': friend.ranking_status,
       'Indicado por': friend.member_name || friend.referrer,
-      'Data de Cadastro': new Date(friend.created_at || friend.registration_date).toLocaleDateString('pt-BR'),
+      'Data de Cadastro': new Date((friend.created_at || friend.registration_date) as string).toLocaleDateString('pt-BR'),
       'Top 1500': friend.is_top_1500 ? 'Sim' : 'Não'
     }))
 
