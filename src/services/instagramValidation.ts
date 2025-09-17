@@ -95,11 +95,11 @@ async function validateInstagramBasic(username: string): Promise<InstagramValida
     };
   }
 
-  // Verificar se não tem pontos ou underscores consecutivos
-  if (username.includes('..') || username.includes('__') || username.includes('._') || username.includes('_.')) {
+  // Verificar se não tem pontos ou underscores consecutivos (apenas pontos duplos são inválidos)
+  if (username.includes('..') || username.includes('__')) {
     return {
       status: false,
-      message: "Nome de usuário do Instagram não pode ter pontos ou underscores consecutivos"
+      message: "Nome de usuário do Instagram não pode ter pontos (..) ou underscores (__) consecutivos"
     };
   }
 

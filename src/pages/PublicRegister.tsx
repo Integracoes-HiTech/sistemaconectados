@@ -141,10 +141,9 @@ export default function PublicRegister() {
       return { isValid: false, error: 'Nome de usuário do Instagram não pode começar ou terminar com ponto (.) ou underscore (_)' };
     }
 
-    // Validação adicional: não pode ter pontos ou underscores consecutivos
-    if (cleanInstagram.includes('..') || cleanInstagram.includes('__') || 
-        cleanInstagram.includes('._') || cleanInstagram.includes('_.')) {
-      return { isValid: false, error: 'Nome de usuário do Instagram não pode ter pontos ou underscores consecutivos' };
+    // Validação adicional: não pode ter pontos ou underscores consecutivos (apenas pontos duplos são inválidos)
+    if (cleanInstagram.includes('..') || cleanInstagram.includes('__')) {
+      return { isValid: false, error: 'Nome de usuário do Instagram não pode ter pontos (..) ou underscores (__) consecutivos' };
     }
 
     // COMENTADO: Validação via API do Instagram (não está pronta)
