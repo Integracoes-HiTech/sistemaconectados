@@ -76,7 +76,7 @@ export const useUserLinks = (userId?: string) => {
 
       // Se o link não tem link_type definido, corrigir baseado na configuração atual
       if (data && !data.link_type) {
-        console.log('🔧 Link sem link_type encontrado, corrigindo...');
+        // Link sem link_type encontrado, corrigindo
         
         // Buscar configuração atual do sistema
         const { data: settingsData, error: settingsError } = await supabase
@@ -94,9 +94,9 @@ export const useUserLinks = (userId?: string) => {
           .eq('id', data.id)
 
         if (updateError) {
-          console.warn('⚠️ Erro ao corrigir link_type:', updateError);
+          // Erro ao corrigir link_type
         } else {
-          console.log('✅ Link_type corrigido para:', linkType);
+          // Link_type corrigido
           data.link_type = linkType;
         }
       }
@@ -120,13 +120,13 @@ export const useUserLinks = (userId?: string) => {
         .single()
 
       if (settingsError) {
-        console.warn('⚠️ Erro ao buscar configuração de tipo de links, usando padrão:', settingsError);
+        // Erro ao buscar configuração de tipo de links, usando padrão
       }
 
       // Definir tipo de link baseado na configuração do sistema (padrão: 'members')
       const linkType = settingsData?.setting_value || 'members'
       
-      console.log('🔍 Criando link com tipo:', linkType);
+      // Criando link com tipo
 
       const { data, error } = await supabase
         .from('user_links')
@@ -185,7 +185,7 @@ export const useUserLinks = (userId?: string) => {
   // Função para incrementar contador de cliques
   const incrementClickCount = async (linkId: string) => {
     try {
-      console.log('🔍 Incrementando contador de cliques para link:', linkId);
+      // Incrementando contador de cliques para link
       
       // Buscar dados atuais do link
       const { data: currentData, error: fetchError } = await supabase
@@ -216,15 +216,15 @@ export const useUserLinks = (userId?: string) => {
           link.link_id === linkId ? { ...link, click_count: link.click_count + 1 } : link
         ))
 
-        // Log do tipo de link para debug
+        // Log do tipo de link
         if (currentData?.link_type === 'friends') {
-          console.log('🔗 Link de amigos acessado:', currentData.referrer_name);
+          // Link de amigos acessado
         }
       }
 
       return { success: true, data: data?.[0] }
     } catch (err) {
-      console.error('❌ Erro ao incrementar contador de cliques:', err);
+      // Erro ao incrementar contador de cliques
       return { 
         success: false, 
         error: err instanceof Error ? err.message : 'Erro ao incrementar contador de cliques' 
@@ -271,24 +271,24 @@ export const useUserLinks = (userId?: string) => {
   // Função para soft delete de user link
   const softDeleteUserLink = async (linkId: string) => {
     try {
-      console.log('🗑️ Executando soft delete do link:', linkId);
+      // Executando soft delete do link
       
       const { data, error } = await supabase
         .rpc('soft_delete_user_link', { link_id_param: linkId })
 
       if (error) {
-        console.error('❌ Erro no soft delete do link:', error);
+        // Erro no soft delete do link
         throw error;
       }
 
-      console.log('✅ Soft delete do link executado com sucesso:', data);
+      // Soft delete do link executado com sucesso
 
       // Recarregar dados após exclusão
       await fetchUserLinks();
 
       return { success: true, data };
     } catch (err) {
-      console.error('❌ Erro geral no softDeleteUserLink:', err);
+      // Erro geral no softDeleteUserLink
       return { 
         success: false, 
         error: err instanceof Error ? err.message : 'Erro ao excluir link' 

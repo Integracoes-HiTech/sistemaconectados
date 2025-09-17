@@ -43,7 +43,7 @@ export default function Settings() {
         if (fetchError) throw fetchError;
 
         if (!existingSettings || existingSettings.length === 0) {
-          console.log('🔧 Criando configuração inicial...');
+          // Criando configuração inicial
           
           const { error: insertError } = await supabase
             .from('system_settings')

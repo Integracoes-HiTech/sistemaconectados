@@ -65,10 +65,10 @@ export const useFriends = () => {
 
   const addFriend = async (friendData: Omit<Friend, 'id' | 'created_at' | 'updated_at' | 'contracts_completed' | 'ranking_position' | 'ranking_status' | 'is_top_1500' | 'can_be_replaced' | 'post_verified_1' | 'post_verified_2' | 'post_url_1' | 'post_url_2'>) => {
     try {
-      console.log('🔍 Hook useFriends - Dados recebidos:', friendData);
+      // Hook useFriends - Dados recebidos
       
       // Buscar o ID do membro que está cadastrando o amigo
-      console.log('🔍 Buscando membro referrer:', friendData.referrer);
+      // Buscando membro referrer
       
       // Primeiro tentar busca exata
       const { data: membersData, error: memberError } = await supabase
@@ -78,10 +78,10 @@ export const useFriends = () => {
         .eq('status', 'Ativo')
         .is('deleted_at', null);
 
-      console.log('🔍 Resultado da busca exata:', { membersData, memberError });
+      // Resultado da busca exata
 
       if (memberError) {
-        console.error('❌ Erro ao buscar membro:', memberError);
+        // Erro ao buscar membro
         throw new Error(`Erro ao buscar membro referrer: ${memberError.message}`);
       }
 
@@ -89,7 +89,7 @@ export const useFriends = () => {
 
       if (!memberData) {
         // Tentar buscar com ILIKE para case-insensitive
-        console.log('🔍 Tentando busca case-insensitive...');
+        // Tentando busca case-insensitive
         const { data: membersDataCaseInsensitive, error: memberErrorCaseInsensitive } = await supabase
           .from('members')
           .select('id, name')
@@ -97,7 +97,7 @@ export const useFriends = () => {
           .eq('status', 'Ativo')
           .is('deleted_at', null);
 
-        console.log('🔍 Resultado da busca case-insensitive:', { membersDataCaseInsensitive, memberErrorCaseInsensitive });
+        // Resultado da busca case-insensitive
 
         if (memberErrorCaseInsensitive) {
           throw new Error(`Erro ao buscar membro referrer: ${memberErrorCaseInsensitive.message}`);
@@ -110,7 +110,7 @@ export const useFriends = () => {
         }
       }
 
-      console.log('🔍 Membro referrer encontrado:', memberData);
+      // Membro referrer encontrado
 
       const insertData = {
         ...friendData,
@@ -125,7 +125,7 @@ export const useFriends = () => {
         post_url_2: null
       };
       
-      console.log('🔍 Dados para inserção:', insertData);
+      // Dados para inserção
 
       const { data, error } = await supabase
         .from('friends')
@@ -134,11 +134,11 @@ export const useFriends = () => {
         .single()
 
       if (error) {
-        console.error('❌ Erro na inserção:', error);
+        // Erro na inserção
         throw error;
       }
 
-      console.log('✅ Amigo inserido com sucesso:', data);
+      // Amigo inserido com sucesso
 
       // Atualizar contratos do membro referrer
       await updateReferrerContracts(friendData.referrer);
@@ -148,7 +148,7 @@ export const useFriends = () => {
 
       return { success: true, data }
     } catch (err) {
-      console.error('❌ Erro geral no addFriend:', err);
+      // Erro geral no addFriend
       return { 
         success: false, 
         error: err instanceof Error ? err.message : 'Erro ao adicionar amigo' 
@@ -158,7 +158,7 @@ export const useFriends = () => {
 
   const updateReferrerContracts = async (referrerName: string) => {
     try {
-      console.log('🔄 Atualizando contratos do referrer:', referrerName);
+      // Atualizando contratos do referrer
       
       // Buscar o membro referrer pelo nome
       const { data: referrerMembers, error: referrerError } = await supabase
@@ -171,19 +171,19 @@ export const useFriends = () => {
       const referrerMember = referrerMembers?.[0]; // Pegar o primeiro resultado
 
       if (referrerError) {
-        console.error('❌ Erro ao buscar referrer:', referrerError);
+        // Erro ao buscar referrer
         return;
       }
 
       if (!referrerMember) {
-        console.warn('⚠️ Referrer não encontrado:', referrerName);
+        // Referrer não encontrado
         return;
       }
 
       // Incrementar contratos completados
       const newContractsCount = referrerMember.contracts_completed + 1;
       
-      console.log(`📈 Incrementando contratos de ${referrerMember.name}: ${referrerMember.contracts_completed} → ${newContractsCount}`);
+      // Incrementando contratos do referrer
 
       // Atualizar contratos do referrer
       const { error: updateError } = await supabase
@@ -195,31 +195,31 @@ export const useFriends = () => {
         .eq('id', referrerMember.id);
 
       if (updateError) {
-        console.error('❌ Erro ao atualizar contratos do referrer:', updateError);
+        // Erro ao atualizar contratos do referrer
         return;
       }
 
-      console.log('✅ Contratos do referrer atualizados com sucesso');
+      // Contratos do referrer atualizados com sucesso
       
       // Atualizar ranking após mudança nos contratos
       await updateRanking();
       
     } catch (err) {
-      console.error('❌ Erro ao atualizar contratos do referrer:', err);
+      // Erro ao atualizar contratos do referrer
     }
   }
 
   const updateRanking = async () => {
     try {
-      console.log('🔄 Atualizando ranking dos membros...');
+      // Atualizando ranking dos membros
       
       // Atualizar ranking dos membros
       const { error: membersError } = await supabase.rpc('update_complete_ranking')
       if (membersError) {
-        console.error('❌ Erro ao atualizar ranking dos membros:', membersError);
+        // Erro ao atualizar ranking dos membros
         // Continuar mesmo se falhar
       } else {
-        console.log('✅ Ranking dos membros atualizado');
+        // Ranking dos membros atualizado
       }
 
       // Atualizar ranking dos amigos
@@ -228,31 +228,31 @@ export const useFriends = () => {
       // Recarregar dados após atualizar ranking
       await fetchFriends()
     } catch (err) {
-      console.error('❌ Erro ao atualizar ranking:', err)
+      // Erro ao atualizar ranking
     }
   }
 
   const updateFriendsRanking = async () => {
     try {
-      console.log('🔄 Atualizando ranking dos amigos...');
+      // Atualizando ranking dos amigos
       
       // Atualizar ranking_position dos amigos baseado em contracts_completed
       const { error } = await supabase.rpc('update_friends_ranking')
       if (error) {
-        console.error('❌ Erro ao atualizar ranking dos amigos:', error);
+        // Erro ao atualizar ranking dos amigos
         // Tentar atualização manual se a função RPC falhar
         await updateFriendsRankingManually();
       } else {
-        console.log('✅ Ranking dos amigos atualizado via RPC');
+        // Ranking dos amigos atualizado via RPC
       }
     } catch (err) {
-      console.error('❌ Erro ao atualizar ranking dos amigos:', err)
+      // Erro ao atualizar ranking dos amigos
     }
   }
 
   const updateFriendsRankingManually = async () => {
     try {
-      console.log('🔄 Atualizando ranking dos amigos manualmente...');
+      // Atualizando ranking dos amigos manualmente
       
       // Atualizar ranking_position dos amigos baseado em contracts_completed
       const { error } = await supabase
@@ -265,7 +265,7 @@ export const useFriends = () => {
         .is('deleted_at', null);
 
       if (error) {
-        console.error('❌ Erro ao limpar ranking dos amigos:', error);
+        // Erro ao limpar ranking dos amigos
         return;
       }
 
@@ -279,7 +279,7 @@ export const useFriends = () => {
         .order('created_at', { ascending: true });
 
       if (fetchError) {
-        console.error('❌ Erro ao buscar amigos para ranking:', fetchError);
+        // Erro ao buscar amigos para ranking
         return;
       }
 
@@ -298,19 +298,19 @@ export const useFriends = () => {
           .eq('id', friend.id);
 
         if (updateError) {
-          console.error('❌ Erro ao atualizar ranking do amigo:', updateError);
+          // Erro ao atualizar ranking do amigo
         }
       }
 
-      console.log('✅ Ranking dos amigos atualizado manualmente');
+      // Ranking dos amigos atualizado manualmente
     } catch (err) {
-      console.error('❌ Erro na atualização manual do ranking:', err);
+      // Erro na atualização manual do ranking
     }
   }
 
   const softDeleteFriend = async (friendId: string) => {
     try {
-      console.log('🗑️ Executando soft delete do amigo:', friendId);
+      // Executando soft delete do amigo
       
       // Buscar dados do amigo antes de deletar
       const { data: friendData, error: fetchError } = await supabase
@@ -320,7 +320,7 @@ export const useFriends = () => {
         .single();
 
       if (fetchError) {
-        console.error('❌ Erro ao buscar dados do amigo:', fetchError);
+        // Erro ao buscar dados do amigo
         throw fetchError;
       }
 
@@ -335,15 +335,15 @@ export const useFriends = () => {
         .single()
 
       if (error) {
-        console.error('❌ Erro no soft delete:', error);
+        // Erro no soft delete
         throw error;
       }
 
-      console.log('✅ Soft delete executado com sucesso:', data);
+      // Soft delete executado com sucesso
 
       // Atualizar contadores do membro referrer
       if (friendData?.referrer) {
-        console.log('🔄 Atualizando contadores após exclusão do amigo:', friendData.referrer);
+        // Atualizando contadores após exclusão do amigo
         await updateMemberCountersAfterDelete(friendData.referrer);
       }
 
@@ -352,7 +352,7 @@ export const useFriends = () => {
 
       return { success: true, data };
     } catch (err) {
-      console.error('❌ Erro geral no softDeleteFriend:', err);
+      // Erro geral no softDeleteFriend
       return { 
         success: false, 
         error: err instanceof Error ? err.message : 'Erro ao excluir amigo' 
@@ -363,7 +363,7 @@ export const useFriends = () => {
   // Função para atualizar contadores do membro após exclusão de amigo
   const updateMemberCountersAfterDelete = async (referrerName: string) => {
     try {
-      console.log('🔄 Atualizando contadores após exclusão:', referrerName);
+      // Atualizando contadores após exclusão
       
       // Buscar o membro referrer
       const { data: referrerMembers, error: referrerError } = await supabase
@@ -376,12 +376,12 @@ export const useFriends = () => {
       const referrerMember = referrerMembers?.[0];
 
       if (referrerError) {
-        console.error('❌ Erro ao buscar referrer:', referrerError);
+        // Erro ao buscar referrer
         return;
       }
 
       if (!referrerMember) {
-        console.warn('⚠️ Referrer não encontrado:', referrerName);
+        // Referrer não encontrado
         return;
       }
 
@@ -394,17 +394,17 @@ export const useFriends = () => {
         .is('deleted_at', null);
 
       if (friendsError) {
-        console.error('❌ Erro ao contar amigos:', friendsError);
+        // Erro ao contar amigos
         return;
       }
 
       const friendsCount = friendsData?.length || 0;
       const currentContracts = referrerMember.contracts_completed;
 
-      console.log(`📊 Contratos atuais: ${currentContracts}, Amigos ativos: ${friendsCount}`);
+      // Contratos atuais e amigos ativos
 
       // Atualizar contracts_completed
-      console.log(`📉 Atualizando contratos após exclusão: ${currentContracts} → ${friendsCount}`);
+      // Atualizando contratos após exclusão
       
       const { error: updateError } = await supabase
         .from('members')
@@ -415,24 +415,24 @@ export const useFriends = () => {
         .eq('id', referrerMember.id);
 
       if (updateError) {
-        console.error('❌ Erro ao atualizar contratos do membro:', updateError);
+        // Erro ao atualizar contratos do membro
         return;
       }
 
       // Atualizar ranking e status
       await updateMemberRankingAndStatus(referrerMember.id, friendsCount);
       
-      console.log('✅ Contadores do membro atualizados após exclusão');
+      // Contadores do membro atualizados após exclusão
 
     } catch (err) {
-      console.error('❌ Erro ao atualizar contadores após exclusão:', err);
+      // Erro ao atualizar contadores após exclusão
     }
   }
 
   // Função para atualizar ranking e status do membro
   const updateMemberRankingAndStatus = async (memberId: string, contractsCount: number) => {
     try {
-      console.log('🔄 Atualizando ranking e status do membro:', memberId, 'Contratos:', contractsCount);
+      // Atualizando ranking e status do membro
       
       // Calcular status baseado no número de contratos
       let rankingStatus = 'Vermelho';
@@ -452,21 +452,21 @@ export const useFriends = () => {
         .eq('id', memberId);
 
       if (statusError) {
-        console.error('❌ Erro ao atualizar status do membro:', statusError);
+        // Erro ao atualizar status do membro
       }
 
       // Atualizar ranking de todos os membros
       await updateAllMembersRanking();
 
     } catch (err) {
-      console.error('❌ Erro ao atualizar ranking e status:', err);
+      // Erro ao atualizar ranking e status
     }
   }
 
   // Função para atualizar ranking de todos os membros
   const updateAllMembersRanking = async () => {
     try {
-      console.log('🔄 Atualizando ranking de todos os membros...');
+      // Atualizando ranking de todos os membros
       
       // Buscar todos os membros ordenados por contratos
       const { data: membersData, error: fetchError } = await supabase
@@ -478,7 +478,7 @@ export const useFriends = () => {
         .order('created_at', { ascending: true });
 
       if (fetchError) {
-        console.error('❌ Erro ao buscar membros para ranking:', fetchError);
+        // Erro ao buscar membros para ranking
         return;
       }
 
@@ -495,14 +495,14 @@ export const useFriends = () => {
           .eq('id', member.id);
 
         if (updateError) {
-          console.error('❌ Erro ao atualizar ranking do membro:', updateError);
+          // Erro ao atualizar ranking do membro
         }
       }
 
-      console.log('✅ Ranking de todos os membros atualizado');
+      // Ranking de todos os membros atualizado
 
     } catch (err) {
-      console.error('❌ Erro ao atualizar ranking geral:', err);
+      // Erro ao atualizar ranking geral
     }
   }
 

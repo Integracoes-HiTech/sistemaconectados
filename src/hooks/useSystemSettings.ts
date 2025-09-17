@@ -33,7 +33,7 @@ export const useSystemSettings = () => {
 
   const fetchSettings = useCallback(async () => {
     try {
-      console.log('🔍 fetchSettings iniciada');
+      // fetchSettings iniciada
       setLoading(true)
       setError(null)
 
@@ -42,11 +42,11 @@ export const useSystemSettings = () => {
         .select('setting_key, setting_value')
 
       if (error) {
-        console.error('❌ Erro ao buscar configurações:', error);
+        // Erro ao buscar configurações
         throw error;
       }
       
-      console.log('✅ Configurações carregadas:', data);
+      // Configurações carregadas
 
       const settingsData: SystemSettings = {
         max_members: 1500,
@@ -90,9 +90,9 @@ export const useSystemSettings = () => {
       })
 
       setSettings(settingsData)
-      console.log('✅ Settings atualizados:', settingsData);
+      // Settings atualizados
     } catch (err) {
-      console.error('❌ Erro geral no fetchSettings:', err);
+      // Erro geral no fetchSettings
       setError(err instanceof Error ? err.message : 'Erro ao carregar configurações')
     } finally {
       setLoading(false)
@@ -110,7 +110,7 @@ export const useSystemSettings = () => {
 
       setPhases(data || [])
     } catch (err) {
-      console.error('Erro ao carregar fases:', err)
+      // Erro ao carregar fases
     }
   }, [])
 
@@ -215,14 +215,14 @@ export const useSystemSettings = () => {
 
   const updateMemberLinksType = async (linkType: 'members' | 'friends') => {
     try {
-      console.log('🚀 NOVA VERSÃO DA FUNÇÃO updateMemberLinksType INICIADA!');
-      console.log('🔍 updateMemberLinksType chamada com:', linkType);
-      console.log('🔍 Tipo de link recebido:', typeof linkType, linkType);
-      console.log('🔍 Timestamp:', new Date().toISOString());
-      console.log('🔍 Versão da função: 2.0 - COM LOGS DETALHADOS');
+      // NOVA VERSÃO DA FUNÇÃO updateMemberLinksType INICIADA
+      // updateMemberLinksType chamada
+      // Tipo de link recebido
+      // Timestamp
+      // Versão da função: 2.0 - COM LOGS DETALHADOS
       
       // 1. Verificar configuração atual antes de alterar
-      console.log('📋 Verificando configuração atual...');
+      // Verificando configuração atual
       const { data: currentSettings, error: fetchError } = await supabase
         .from('system_settings')
         .select('setting_value')
@@ -230,29 +230,29 @@ export const useSystemSettings = () => {
         .single();
 
       if (fetchError) {
-        console.error('❌ Erro ao buscar configuração atual:', fetchError);
+        // Erro ao buscar configuração atual
         throw fetchError;
       }
 
-      console.log('📋 Configuração atual:', currentSettings?.setting_value);
-      console.log('📋 Nova configuração:', linkType);
+      // Configuração atual
+      // Nova configuração
       
       // 2. Atualizar configuração do sistema
-      console.log('🔄 Atualizando configuração do sistema...');
+      // Atualizando configuração do sistema
       const { error } = await supabase
         .from('system_settings')
         .update({ setting_value: linkType })
         .eq('setting_key', 'member_links_type')
 
       if (error) {
-        console.error('❌ Erro na atualização da configuração:', error);
+        // Erro na atualização da configuração
         throw error;
       }
 
-      console.log('✅ Configuração do sistema atualizada');
+      // Configuração do sistema atualizada
 
-      // 3. Buscar UUID do admin
-      console.log('👑 Buscando UUID do admin...');
+      // Buscar UUID do usuário
+      // Buscando UUID do usuário
       const { data: adminUser, error: adminError } = await supabase
         .from('auth_users')
         .select('id, username, full_name')
@@ -260,38 +260,31 @@ export const useSystemSettings = () => {
         .single();
 
       if (adminError) {
-        console.error('❌ Erro ao buscar admin:', adminError);
+        // Erro ao buscar usuário
         throw adminError;
       }
 
       const adminId = adminUser?.id;
-      console.log('👑 Admin encontrado:', {
-        id: adminId,
-        username: adminUser?.username,
-        full_name: adminUser?.full_name
-      });
+      // Usuário encontrado
 
       // 4. Verificar links existentes antes de atualizar
-      console.log('📊 Verificando links existentes...');
+      // Verificando links existentes
       const { data: existingLinks, error: linksFetchError } = await supabase
         .from('user_links')
         .select('id, user_id, link_type')
         .neq('user_id', adminId);
 
       if (linksFetchError) {
-        console.error('❌ Erro ao buscar links existentes:', linksFetchError);
+        // Erro ao buscar links existentes
         throw linksFetchError;
       }
 
-      console.log('📊 Links existentes (exceto admin):', existingLinks?.length || 0);
-      console.log('📊 Links por tipo:', existingLinks?.reduce((acc, link) => {
-        acc[link.link_type] = (acc[link.link_type] || 0) + 1;
-        return acc;
-      }, {} as Record<string, number>));
+      // Links existentes
+      // Links por tipo
 
-      // 5. Se mudando para 'friends', atualizar links existentes (exceto admin)
+      // Se mudando para 'friends', atualizar links existentes
       if (linkType === 'friends') {
-        console.log('🔄 Atualizando links existentes para friends (exceto admin)...');
+        // Atualizando links existentes para friends
         
         const { data: updateResult, error: linksError } = await supabase
           .from('user_links')
@@ -300,21 +293,21 @@ export const useSystemSettings = () => {
             updated_at: new Date().toISOString()
           })
           .eq('link_type', 'members')
-          .neq('user_id', adminId) // Excluir admin
+          .neq('user_id', adminId) // Excluir usuário específico
           .select('id, user_id, link_type');
 
         if (linksError) {
-          console.error('❌ Erro ao atualizar links existentes:', linksError);
+          // Erro ao atualizar links existentes
           throw linksError;
         }
 
-        console.log('✅ Links atualizados para friends:', updateResult?.length || 0);
-        console.log('📊 Resultado da atualização:', updateResult);
+        // Links atualizados para friends
+        // Resultado da atualização
       }
 
-      // 6. Se mudando para 'members', atualizar links existentes (exceto admin)
+      // Se mudando para 'members', atualizar links existentes
       if (linkType === 'members') {
-        console.log('🔄 Atualizando links existentes para members (exceto admin)...');
+        // Atualizando links existentes para members (exceto admin)
         
         const { data: updateResult, error: linksError } = await supabase
           .from('user_links')
@@ -323,43 +316,40 @@ export const useSystemSettings = () => {
             updated_at: new Date().toISOString()
           })
           .eq('link_type', 'friends')
-          .neq('user_id', adminId) // Excluir admin
+          .neq('user_id', adminId) // Excluir usuário específico
           .select('id, user_id, link_type');
 
         if (linksError) {
-          console.error('❌ Erro ao atualizar links existentes:', linksError);
+          // Erro ao atualizar links existentes
           throw linksError;
         }
 
-        console.log('✅ Links atualizados para members:', updateResult?.length || 0);
-        console.log('📊 Resultado da atualização:', updateResult);
+        // Links atualizados para members
+        // Resultado da atualização
       }
       
       // 7. Verificar resultado final
-      console.log('🔍 Verificando resultado final...');
+      // Verificando resultado final
       const { data: finalLinks, error: finalError } = await supabase
         .from('user_links')
         .select('id, user_id, link_type')
         .neq('user_id', adminId);
 
       if (finalError) {
-        console.error('❌ Erro ao verificar resultado final:', finalError);
+        // Erro ao verificar resultado final
       } else {
-        console.log('📊 Links finais (exceto admin):', finalLinks?.length || 0);
-        console.log('📊 Links finais por tipo:', finalLinks?.reduce((acc, link) => {
-          acc[link.link_type] = (acc[link.link_type] || 0) + 1;
-          return acc;
-        }, {} as Record<string, number>));
+        // Links finais (exceto admin)
+        // Links finais por tipo
       }
       
       // Recarregar configurações
-      console.log('🔄 Recarregando configurações...');
+      // Recarregando configurações
       await fetchSettings()
       
-      console.log('✅ updateMemberLinksType concluída com sucesso!');
+      // updateMemberLinksType concluída com sucesso
       return { success: true }
     } catch (err) {
-      console.error('❌ Erro geral no updateMemberLinksType:', err);
+      // Erro geral no updateMemberLinksType
       return { 
         success: false, 
         error: err instanceof Error ? err.message : 'Erro ao atualizar tipo de links' 

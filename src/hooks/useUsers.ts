@@ -28,7 +28,7 @@ export const useUsers = (referrer?: string) => {
 
       // Validar referrer antes de fazer a query
       if (referrer && typeof referrer !== 'string') {
-        console.warn('🚨 Referrer inválido:', referrer)
+        // Referrer inválido
         setUsers([])
         setLoading(false)
         return
@@ -41,9 +41,9 @@ export const useUsers = (referrer?: string) => {
 
       if (referrer) {
         query = query.eq('referrer', referrer)
-        console.log('🔍 Buscando usuários para referrer:', referrer)
+        // Buscando usuários para referrer
       } else {
-        console.log('🔍 Buscando todos os usuários (admin)')
+        // Buscando todos os usuários
       }
 
       const { data, error } = await query
@@ -53,16 +53,16 @@ export const useUsers = (referrer?: string) => {
       // Validar dados recebidos
       const validUsers = (data || []).filter(user => {
         if (!user.id || !user.name) {
-          console.warn('🚨 Usuário com dados inválidos encontrado:', user)
+          // Usuário com dados inválidos encontrado
           return false
         }
         return true
       })
 
-      console.log(`✅ ${validUsers.length} usuários válidos carregados`)
+      // Usuários válidos carregados
       setUsers(validUsers)
     } catch (err) {
-      console.error('🚨 Erro ao carregar usuários:', err)
+      // Erro ao carregar usuários
       setError(err instanceof Error ? err.message : 'Erro ao carregar usuários')
       setUsers([])
     } finally {

@@ -43,7 +43,6 @@ import { useExportReports } from "@/hooks/useExportReports";
 import { useSystemSettings } from "@/hooks/useSystemSettings";
 
 export default function Dashboard() {
-  console.log('🔍 Dashboard sendo renderizado');
   
   const [userLink, setUserLink] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
@@ -133,7 +132,7 @@ export default function Dashboard() {
         throw new Error(result.error || "Erro desconhecido");
       }
     } catch (error) {
-      console.error("Erro ao excluir amigo:", error);
+      // Erro ao excluir amigo
       toast({
         title: "❌ Erro ao excluir",
         description: error instanceof Error ? error.message : "Erro ao excluir amigo",
@@ -143,32 +142,16 @@ export default function Dashboard() {
   };
 
   // Lógica de filtro por referrer:
-  // - Admin: vê todos os usuários (sem filtro)
+  // Usuário vê todos os usuários (sem filtro)
   // - Outros roles: vê apenas usuários que eles indicaram (filtro por user.full_name)
   const isAdminUser = isAdmin();
   const referrerFilter = isAdminUser ? undefined : user?.full_name;
   const userIdFilter = isAdminUser ? undefined : user?.id;
   
-  // Debug: verificar se admin está sendo detectado corretamente
-  console.log('🔍 Debug Admin:', {
-    user: user?.username,
-    role: user?.role,
-    isAdmin: isAdminUser,
-    referrerFilter,
-    userIdFilter
-  });
-
-  // Debug adicional: verificar todas as funções de role
-  console.log('🔍 Debug Roles:', {
-    username: user?.username,
-    role: user?.role,
-    isAdmin: isAdmin(),
-    isMembro: isMembro(),
-    isAmigo: isAmigo(),
-    isConvidado: isConvidado(),
-    fullName: user?.full_name
-  });
-
+  // Verificar se usuário está sendo detectado corretamente
+  // Verificar todas as funções de role
+  // Verificar o que está sendo passado para os hooks
+  // Verificar dados carregados
   const { users: allUsers, loading: usersLoading } = useUsers(referrerFilter);
   const { stats, loading: statsLoading } = useStats(referrerFilter);
   const { reportData, loading: reportsLoading } = useReports(referrerFilter);
@@ -217,28 +200,8 @@ export default function Dashboard() {
     updateMemberLinksType
   } = useSystemSettings();
 
-  console.log('🔍 Debug useSystemSettings:', {
-    settings,
-    loading: settingsLoading,
-    updateMemberLinksType: typeof updateMemberLinksType
-  });
-
-  // Debug: verificar o que está sendo passado para os hooks
-  console.log('🔍 Debug Hooks:', {
-    referrerFilter,
-    userIdFilter,
-    allUsersCount: allUsers.length,
-    firstUserReferrer: allUsers[0]?.referrer
-  });
-
-  // Debug: verificar dados carregados
-  console.log('📊 Debug Dados:', {
-    totalUsers: allUsers.length,
-    firstUserReferrer: allUsers[0]?.referrer,
-    userFullName: user?.full_name,
-    shouldSeeAll: isAdminUser,
-    shouldSeeOnly: user?.full_name
-  });
+  // Verificar o que está sendo passado para os hooks
+  // Verificar dados carregados
 
   const handleLogout = () => {
     logout();

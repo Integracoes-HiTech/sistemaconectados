@@ -202,10 +202,10 @@ export default function PublicRegister() {
         [isCouple ? 'couple_sector' : 'sector']: dadosCep.bairro
       }));
 
-      console.log('✅ CEP encontrado e campos preenchidos:', dadosCep);
+      // CEP encontrado e campos preenchidos
 
     } catch (error) {
-      console.error('❌ Erro ao buscar CEP:', error);
+      // Erro ao buscar CEP
       
       const errorMessage = error instanceof Error ? error.message : 'Erro ao buscar CEP';
       
@@ -238,7 +238,7 @@ export default function PublicRegister() {
   // Função para atualizar contadores do membro após cadastro de amigo
   const updateMemberCountersAfterRegistration = async (referrerName: string) => {
     try {
-      console.log('🔄 Atualizando contadores do membro após cadastro:', referrerName);
+      // Atualizando contadores do membro após cadastro
       
       // Buscar o membro referrer
       const { data: referrerMembers, error: referrerError } = await supabase
@@ -251,12 +251,12 @@ export default function PublicRegister() {
       const referrerMember = referrerMembers?.[0];
 
       if (referrerError) {
-        console.error('❌ Erro ao buscar referrer:', referrerError);
+        // Erro ao buscar referrer
         return;
       }
 
       if (!referrerMember) {
-        console.warn('⚠️ Referrer não encontrado:', referrerName);
+        // Referrer não encontrado
         return;
       }
 
@@ -269,17 +269,17 @@ export default function PublicRegister() {
         .is('deleted_at', null);
 
       if (friendsError) {
-        console.error('❌ Erro ao contar amigos:', friendsError);
+        // Erro ao contar amigos
         return;
       }
 
       const friendsCount = friendsData?.length || 0;
       const currentContracts = referrerMember.contracts_completed;
 
-      console.log(`📊 Contratos atuais: ${currentContracts}, Amigos cadastrados: ${friendsCount}`);
+      // Contratos atuais e amigos cadastrados
 
       // Atualizar contracts_completed
-      console.log(`📈 Atualizando contratos após cadastro: ${currentContracts} → ${friendsCount}`);
+      // Atualizando contratos após cadastro
       
       const { error: updateError } = await supabase
         .from('members')
@@ -290,24 +290,24 @@ export default function PublicRegister() {
         .eq('id', referrerMember.id);
 
       if (updateError) {
-        console.error('❌ Erro ao atualizar contratos do membro:', updateError);
+        // Erro ao atualizar contratos do membro
         return;
       }
 
       // Atualizar ranking e status
       await updateMemberRankingAndStatus(referrerMember.id, friendsCount);
       
-      console.log('✅ Contadores do membro atualizados após cadastro');
+      // Contadores do membro atualizados após cadastro
 
     } catch (err) {
-      console.error('❌ Erro ao atualizar contadores após cadastro:', err);
+      // Erro ao atualizar contadores após cadastro
     }
   }
 
   // Função para atualizar ranking e status do membro
   const updateMemberRankingAndStatus = async (memberId: string, contractsCount: number) => {
     try {
-      console.log('🔄 Atualizando ranking e status do membro:', memberId, 'Contratos:', contractsCount);
+      // Atualizando ranking e status do membro
       
       // Calcular status baseado no número de contratos
       let rankingStatus = 'Vermelho';
@@ -327,21 +327,21 @@ export default function PublicRegister() {
         .eq('id', memberId);
 
       if (statusError) {
-        console.error('❌ Erro ao atualizar status do membro:', statusError);
+        // Erro ao atualizar status do membro
       }
 
       // Atualizar ranking de todos os membros
       await updateAllMembersRanking();
 
     } catch (err) {
-      console.error('❌ Erro ao atualizar ranking e status:', err);
+      // Erro ao atualizar ranking e status
     }
   }
 
   // Função para atualizar ranking de todos os membros
   const updateAllMembersRanking = async () => {
     try {
-      console.log('🔄 Atualizando ranking de todos os membros...');
+      // Atualizando ranking de todos os membros
       
       // Buscar todos os membros ordenados por contratos
       const { data: membersData, error: fetchError } = await supabase
@@ -353,7 +353,7 @@ export default function PublicRegister() {
         .order('created_at', { ascending: true });
 
       if (fetchError) {
-        console.error('❌ Erro ao buscar membros para ranking:', fetchError);
+        // Erro ao buscar membros para ranking
         return;
       }
 
@@ -370,14 +370,14 @@ export default function PublicRegister() {
           .eq('id', member.id);
 
         if (updateError) {
-          console.error('❌ Erro ao atualizar ranking do membro:', updateError);
+          // Erro ao atualizar ranking do membro
         }
       }
 
-      console.log('✅ Ranking de todos os membros atualizado');
+      // Ranking de todos os membros atualizado
 
     } catch (err) {
-      console.error('❌ Erro ao atualizar ranking geral:', err);
+      // Erro ao atualizar ranking geral
     }
   }
 
@@ -406,7 +406,7 @@ export default function PublicRegister() {
         .is('deleted_at', null);
 
       if (membersError) {
-        console.error('Erro ao verificar membros:', membersError);
+        // Erro ao verificar membros
         return errors;
       }
 
@@ -418,7 +418,7 @@ export default function PublicRegister() {
         .is('deleted_at', null);
 
       if (friendsError) {
-        console.error('Erro ao verificar amigos:', friendsError);
+        // Erro ao verificar amigos
         return errors;
       }
 
@@ -460,7 +460,7 @@ export default function PublicRegister() {
       }
 
     } catch (error) {
-      console.error('Erro na validação de duplicatas:', error);
+      // Erro na validação de duplicatas
     }
 
     return errors;
@@ -623,7 +623,7 @@ export default function PublicRegister() {
           setFormData(prev => ({ ...prev, referrer: 'Usuário do Sistema' }));
         }
       } catch (error) {
-        console.error('Erro ao buscar dados do referrer:', error);
+        // Erro ao buscar dados do referrer
         setFormData(prev => ({ ...prev, referrer: 'Usuário do Sistema' }));
       }
   }, [linkId, getUserByLinkId, incrementClickCount]);
@@ -656,10 +656,10 @@ export default function PublicRegister() {
       // Validação de CEP já foi feita na função validateRequiredFields
       // Os dados de cidade e setor vêm da consulta do CEP
 
-      console.log('✅ Validação de CEP concluída');
+      // Validação de CEP concluída
 
     } catch (error) {
-      console.error('💥 Erro na validação/criação:', error);
+      // Erro na validação/criação
       toast({
         title: "Erro na validação",
         description: error instanceof Error ? error.message : "Erro ao validar cidade e setor. Tente novamente.",
@@ -675,9 +675,9 @@ export default function PublicRegister() {
       // IDENTIFICAR TIPO DE LINK - Verificar se é para cadastrar membro ou amigo
       const isFriendRegistration = linkData?.link_type === 'friends';
       
-      console.log('🔍 Dados do link:', linkData);
-      console.log('🔍 Tipo de link identificado:', linkData?.link_type);
-      console.log('🔍 É cadastro de amigo?', isFriendRegistration);
+      // Dados do link
+      // Tipo de link identificado
+      // É cadastro de amigo?
       
       // Verificar configuração atual do sistema
       const { data: currentSettings, error: settingsError } = await supabase
@@ -686,7 +686,7 @@ export default function PublicRegister() {
         .eq('setting_key', 'member_links_type')
         .single();
       
-      console.log('🔍 Configuração atual do sistema:', currentSettings?.setting_value);
+      // Configuração atual do sistema
       
       // Se for cadastro de amigo, não verificar limite de membros
       if (!isFriendRegistration) {
@@ -705,7 +705,7 @@ export default function PublicRegister() {
 
       if (isFriendRegistration) {
         // CADASTRO DE AMIGO (CADASTRO ESPECIAL) - Usar tabela friends
-        console.log('📝 Cadastrando amigo (cadastro especial)...');
+        // Cadastrando amigo (cadastro especial)
         
         // Preparar dados do amigo para tabela friends
         const friendData = {
@@ -728,7 +728,7 @@ export default function PublicRegister() {
           deleted_at: null
         };
 
-        console.log('📝 Dados do amigo a serem salvos:', friendData);
+        // Dados do amigo a serem salvos
 
         // Salvar amigo na tabela friends
         const friendResult = await addFriend(friendData);
@@ -742,7 +742,7 @@ export default function PublicRegister() {
         
         // Atualizar contadores do membro referrer após cadastro bem-sucedido
         if (formData.referrer) {
-          console.log('🔄 Atualizando contadores do membro após cadastro:', formData.referrer);
+          // Atualizando contadores do membro após cadastro
           await updateMemberCountersAfterRegistration(formData.referrer);
         }
         
@@ -753,7 +753,7 @@ export default function PublicRegister() {
 
       } else {
         // CADASTRO DE MEMBRO (NORMAL)
-        console.log('📝 Cadastrando membro...');
+        // Cadastrando membro
         
         // Preparar dados para salvar no banco
         const memberData = {
@@ -773,7 +773,7 @@ export default function PublicRegister() {
           couple_sector: formData.couple_sector.trim()
         };
 
-        console.log('📝 Dados do membro a serem salvos:', memberData);
+        // Dados do membro a serem salvos
 
         // 1. Salvar membro na tabela members
         const memberResult = await addMember(memberData);
@@ -797,7 +797,7 @@ export default function PublicRegister() {
         const userResult = await addUser(userData);
         
         if (!userResult.success) {
-          console.warn('Aviso: Erro ao salvar na tabela users:', userResult.error);
+          // Aviso: Erro ao salvar na tabela users
         }
 
         // 3. Criar credenciais compartilhadas para a dupla
@@ -823,7 +823,7 @@ export default function PublicRegister() {
       }
 
     } catch (error) {
-      console.error('Erro no cadastro:', error);
+      // Erro no cadastro
       toast({
         title: "Erro no cadastro",
         description: error instanceof Error ? error.message : "Ocorreu um erro ao salvar os dados. Tente novamente.",
@@ -975,10 +975,10 @@ export default function PublicRegister() {
                                 .eq('username', username);
                               
                               if (error) {
-                                console.warn('Erro ao atualizar nome de exibição:', error);
+                                // Erro ao atualizar nome de exibição
                               }
                             } catch (updateError) {
-                              console.warn('Erro ao atualizar nome de exibição:', updateError);
+                              // Erro ao atualizar nome de exibição
                             }
                           }
                           

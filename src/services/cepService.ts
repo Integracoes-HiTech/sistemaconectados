@@ -25,7 +25,7 @@ export interface CepError {
  */
 export async function buscarCep(cep: string): Promise<CepData> {
   try {
-    console.log('🔍 Buscando CEP:', cep);
+    // Buscando CEP
     
     // Remove traços, espaços e caracteres não numéricos
     const cepLimpo = cep.replace(/\D/g, "");
@@ -37,7 +37,7 @@ export async function buscarCep(cep: string): Promise<CepData> {
 
     const url = `https://viacep.com.br/ws/${cepLimpo}/json/`;
 
-    console.log('🌐 Fazendo requisição para:', url);
+    // Fazendo requisição para API
 
     const response = await fetch(url);
     
@@ -47,7 +47,7 @@ export async function buscarCep(cep: string): Promise<CepData> {
 
     const data = await response.json();
 
-    console.log('📋 Dados recebidos do ViaCEP:', data);
+    // Dados recebidos do ViaCEP
 
     if (data.erro) {
       throw new Error("CEP não encontrado!");
@@ -67,11 +67,11 @@ export async function buscarCep(cep: string): Promise<CepData> {
       cep: data.cep?.trim() || cepLimpo
     };
 
-    console.log('✅ CEP encontrado:', resultado);
+    // CEP encontrado
     return resultado;
 
   } catch (error) {
-    console.error('❌ Erro ao buscar CEP:', error);
+    // Erro ao buscar CEP
     
     if (error instanceof Error) {
       throw error;

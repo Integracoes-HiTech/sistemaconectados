@@ -8,22 +8,22 @@ export const useExportReports = () => {
   // Exportar para PDF
   const exportToPDF = useCallback(async (elementId: string, filename: string = 'relatorio.pdf') => {
     try {
-      console.log('🔍 Tentando exportar PDF para elemento:', elementId)
+      // Tentando exportar PDF para elemento
       
       const element = document.getElementById(elementId)
       if (!element) {
-        console.error('❌ Elemento não encontrado:', elementId)
+        // Elemento não encontrado
         throw new Error(`Elemento com ID "${elementId}" não encontrado`)
       }
 
       // Verificar se o elemento tem conteúdo (tabela com dados)
       const tableRows = element.querySelectorAll('tbody tr')
       if (tableRows.length === 0) {
-        console.warn('⚠️ Tabela vazia detectada')
+        // Tabela vazia detectada
         throw new Error('Não é possível gerar um relatório sem dados')
       }
 
-      console.log('✅ Elemento encontrado, gerando canvas...')
+      // Elemento encontrado, gerando canvas
       
       const canvas = await html2canvas(element, {
         scale: 2,
@@ -35,7 +35,7 @@ export const useExportReports = () => {
         height: element.scrollHeight
       })
 
-      console.log('✅ Canvas gerado, criando PDF...')
+      // Canvas gerado, criando PDF
       
       const imgData = canvas.toDataURL('image/png')
       const pdf = new jsPDF('p', 'mm', 'a4')
@@ -57,12 +57,12 @@ export const useExportReports = () => {
         heightLeft -= pageHeight
       }
 
-      console.log('✅ PDF criado, salvando arquivo:', filename)
+      // PDF criado, salvando arquivo
       pdf.save(filename)
       
-      console.log('✅ PDF exportado com sucesso!')
+      // PDF exportado com sucesso
     } catch (error) {
-      console.error('❌ Erro ao exportar PDF:', error)
+      // Erro ao exportar PDF
       throw new Error(`Erro ao exportar PDF: ${error instanceof Error ? error.message : 'Erro desconhecido'}`)
     }
   }, [])
@@ -70,7 +70,7 @@ export const useExportReports = () => {
   // Exportar dados para Excel
   const exportToExcel = useCallback((data: Record<string, unknown>[], filename: string = 'relatorio.xlsx', sheetName: string = 'Relatório') => {
     try {
-      console.log('🔍 Tentando exportar Excel:', filename, 'com', data.length, 'registros')
+      // Tentando exportar Excel
       
       if (!data || data.length === 0) {
         throw new Error('Não é possível gerar um relatório sem dados')
@@ -78,7 +78,7 @@ export const useExportReports = () => {
 
       // Para grandes volumes (>10.000 registros), usar processamento em chunks
       if (data.length > 10000) {
-        console.log('📊 Processando grande volume de dados em chunks...')
+        // Processando grande volume de dados em chunks
         
         const chunkSize = 5000
         const chunks = []
@@ -95,27 +95,27 @@ export const useExportReports = () => {
           XLSX.utils.book_append_sheet(workbook, worksheet, sheetNameChunk)
         })
         
-        console.log('✅ Excel criado com múltiplas abas, salvando arquivo:', filename)
+        // Excel criado com múltiplas abas, salvando arquivo
         XLSX.writeFile(workbook, filename)
       } else {
         const worksheet = XLSX.utils.json_to_sheet(data)
         const workbook = XLSX.utils.book_new()
         XLSX.utils.book_append_sheet(workbook, worksheet, sheetName)
         
-        console.log('✅ Excel criado, salvando arquivo:', filename)
+        // Excel criado, salvando arquivo
         XLSX.writeFile(workbook, filename)
       }
       
-      console.log('✅ Excel exportado com sucesso!')
+      // Excel exportado com sucesso
     } catch (error) {
-      console.error('❌ Erro ao exportar Excel:', error)
+      // Erro ao exportar Excel
       throw new Error(`Erro ao exportar Excel: ${error instanceof Error ? error.message : 'Erro desconhecido'}`)
     }
   }, [])
 
   // Exportar membros para Excel
   const exportMembersToExcel = useCallback((members: Record<string, unknown>[]) => {
-    console.log(`📊 Exportando ${members.length} membros (limite máximo: 1.500)`)
+    // Exportando membros
     
     const data = members.map(member => ({
       'Posição': member.ranking_position || 'N/A',
@@ -158,7 +158,7 @@ export const useExportReports = () => {
 
   // Exportar estatísticas para Excel
   const exportStatsToExcel = useCallback((stats: Record<string, unknown>) => {
-    console.log('📊 Exportando estatísticas do sistema')
+    // Exportando estatísticas do sistema
     
     // Verificar se há dados válidos para exportar
     const totalMembers = Number(stats.total_members) || 0
@@ -183,7 +183,7 @@ export const useExportReports = () => {
 
   // Exportar amigos para Excel
   const exportFriendsToExcel = useCallback((friends: unknown[]) => {
-    console.log(`📊 Exportando ${friends.length} amigos (limite máximo: 22.500)`)
+    // Exportando amigos
     
     const data = friends.map(friend => {
       const f = friend as Record<string, unknown>

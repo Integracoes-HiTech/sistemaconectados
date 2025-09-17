@@ -104,7 +104,7 @@ export const useMembers = (referrer?: string) => {
 
       setMemberStats(stats)
     } catch (err) {
-      console.error('Erro ao carregar estatísticas dos membros:', err)
+      // Erro ao carregar estatísticas dos membros
     }
   }, [])
 
@@ -151,23 +151,23 @@ export const useMembers = (referrer?: string) => {
 
       setSystemSettings(settings)
     } catch (err) {
-      console.error('Erro ao carregar configurações do sistema:', err)
+      // Erro ao carregar configurações do sistema
     }
   }, [])
 
   const addMember = async (memberData: Omit<Member, 'id' | 'created_at' | 'updated_at' | 'contracts_completed' | 'ranking_position' | 'ranking_status' | 'is_top_1500' | 'can_be_replaced'>) => {
     try {
-      console.log('🔍 Hook useMembers - Dados recebidos:', memberData);
+      // Hook useMembers - Dados recebidos
       
       // Verificar se pode cadastrar mais membros
-      console.log('🔍 Verificando se pode cadastrar mais membros...');
+      // Verificando se pode cadastrar mais membros
       const { data: canRegister, error: canRegisterError } = await supabase
         .rpc('can_register_member')
 
-      console.log('🔍 Resultado da verificação:', { canRegister, canRegisterError });
+      // Resultado da verificação
 
       if (canRegisterError) {
-        console.error('❌ Erro na verificação de limite:', canRegisterError);
+        // Erro na verificação de limite
         throw canRegisterError;
       }
 
@@ -175,7 +175,7 @@ export const useMembers = (referrer?: string) => {
         throw new Error('Limite de 1.500 membros atingido. Não é possível cadastrar novos membros.')
       }
 
-      console.log('🔍 Inserindo membro no banco...');
+      // Inserindo membro no banco
       const insertData = {
         ...memberData,
         contracts_completed: 0,
@@ -185,7 +185,7 @@ export const useMembers = (referrer?: string) => {
         is_friend: memberData.is_friend || false
       };
       
-      console.log('🔍 Dados para inserção:', insertData);
+      // Dados para inserção
 
       const { data, error } = await supabase
         .from('members')
@@ -193,15 +193,15 @@ export const useMembers = (referrer?: string) => {
         .select()
         .single()
 
-      console.log('🔍 Resultado da inserção:', { data, error });
+      // Resultado da inserção
 
       if (error) {
-        console.error('❌ Erro na inserção:', error);
-        console.error('❌ Detalhes do erro:', JSON.stringify(error, null, 2));
+        // Erro na inserção
+        // Detalhes do erro
         throw error;
       }
 
-      console.log('✅ Membro inserido com sucesso:', data);
+      // Membro inserido com sucesso
 
       // Se é um amigo, atualizar contratos do referrer
       if (memberData.is_friend && memberData.referrer) {
@@ -216,7 +216,7 @@ export const useMembers = (referrer?: string) => {
 
       return { success: true, data }
     } catch (err) {
-      console.error('❌ Erro geral no addMember:', err);
+      // Erro geral no addMember
       return { 
         success: false, 
         error: err instanceof Error ? err.message : 'Erro ao adicionar membro' 
@@ -226,7 +226,7 @@ export const useMembers = (referrer?: string) => {
 
   const updateReferrerContracts = async (referrerName: string) => {
     try {
-      console.log('🔄 Atualizando contratos do referrer:', referrerName);
+      // Atualizando contratos do referrer
       
       // Buscar o membro referrer pelo nome
       const { data: referrerMembers, error: referrerError } = await supabase
@@ -239,19 +239,19 @@ export const useMembers = (referrer?: string) => {
       const referrerMember = referrerMembers?.[0]; // Pegar o primeiro resultado
 
       if (referrerError) {
-        console.error('❌ Erro ao buscar referrer:', referrerError);
+        // Erro ao buscar referrer
         return;
       }
 
       if (!referrerMember) {
-        console.warn('⚠️ Referrer não encontrado:', referrerName);
+        // Referrer não encontrado
         return;
       }
 
       // Incrementar contratos completados
       const newContractsCount = referrerMember.contracts_completed + 1;
       
-      console.log(`📈 Incrementando contratos de ${referrerMember.name}: ${referrerMember.contracts_completed} → ${newContractsCount}`);
+      // Incrementando contratos do referrer
 
       // Atualizar contratos do referrer
       const { error: updateError } = await supabase
@@ -263,17 +263,17 @@ export const useMembers = (referrer?: string) => {
         .eq('id', referrerMember.id);
 
       if (updateError) {
-        console.error('❌ Erro ao atualizar contratos do referrer:', updateError);
+        // Erro ao atualizar contratos do referrer
         return;
       }
 
-      console.log('✅ Contratos do referrer atualizados com sucesso');
+      // Contratos do referrer atualizados com sucesso
       
       // Atualizar ranking após mudança nos contratos
       await updateRanking();
       
     } catch (err) {
-      console.error('❌ Erro ao atualizar contratos do referrer:', err);
+      // Erro ao atualizar contratos do referrer
     }
   }
 
@@ -286,7 +286,7 @@ export const useMembers = (referrer?: string) => {
       await fetchMembers()
       await fetchMemberStats()
     } catch (err) {
-      console.error('Erro ao atualizar ranking:', err)
+      // Erro ao atualizar ranking
     }
   }
 
@@ -351,7 +351,7 @@ export const useMembers = (referrer?: string) => {
   // Função para soft delete (exclusão lógica) com cascata
   const softDeleteMember = async (memberId: string) => {
     try {
-      console.log('🗑️ Executando soft delete do membro com cascata:', memberId);
+      // Executando soft delete do membro com cascata
       
       // Primeiro tentar a nova função de exclusão em cascata
       let { data, error } = await supabase
@@ -359,7 +359,7 @@ export const useMembers = (referrer?: string) => {
 
       // Se a função de cascata não existir, usar a função original
       if (error && error.message.includes('function') && error.message.includes('does not exist')) {
-        console.log('⚠️ Função de cascata não encontrada, usando função original...');
+        // Função de cascata não encontrada, usando função original
         
         // Buscar dados do membro para exclusão manual
         const { data: memberData, error: memberError } = await supabase
@@ -390,7 +390,7 @@ export const useMembers = (referrer?: string) => {
           .in('role', ['Membro', 'Amigo']);
 
         if (authFetchError) {
-          console.warn('⚠️ Erro ao buscar auth_users:', authFetchError);
+          // Erro ao buscar auth_users
         }
 
         if (authUsers && authUsers.length > 0) {
@@ -401,7 +401,7 @@ export const useMembers = (referrer?: string) => {
             .in('user_id', authUsers.map(au => au.id));
 
           if (linksError) {
-            console.warn('⚠️ Erro ao excluir user_links:', linksError);
+            // Erro ao excluir user_links
           }
 
           // Excluir auth_users fisicamente
@@ -412,7 +412,7 @@ export const useMembers = (referrer?: string) => {
             .in('role', ['Membro', 'Amigo']);
 
           if (authError) {
-            console.warn('⚠️ Erro ao excluir auth_users:', authError);
+            // Erro ao excluir auth_users
           }
         }
 
@@ -421,11 +421,11 @@ export const useMembers = (referrer?: string) => {
       }
 
       if (error) {
-        console.error('❌ Erro no soft delete:', error);
+        // Erro no soft delete
         throw error;
       }
 
-      console.log('✅ Soft delete executado com sucesso:', data);
+      // Soft delete executado com sucesso
 
       // Recarregar dados após exclusão
       await fetchMembers();
@@ -433,7 +433,7 @@ export const useMembers = (referrer?: string) => {
 
       return { success: true, data };
     } catch (err) {
-      console.error('❌ Erro geral no softDeleteMember:', err);
+      // Erro geral no softDeleteMember
       return { 
         success: false, 
         error: err instanceof Error ? err.message : 'Erro ao excluir membro' 

@@ -42,17 +42,17 @@ export async function validateInstagramAccount(username: string): Promise<Instag
         }
       } else {
         // Se webhook falhar, usar validação básica
-        console.log('Webhook do Instagram indisponível, usando validação básica');
+        // Webhook do Instagram indisponível, usando validação básica
         return basicValidation;
       }
     } catch (webhookError) {
       // Se webhook falhar, usar validação básica
-      console.log('Erro no webhook do Instagram, usando validação básica:', webhookError);
+      // Erro no webhook do Instagram, usando validação básica
       return basicValidation;
     }
 
   } catch (error) {
-    console.error('Erro na validação do Instagram:', error);
+    // Erro na validação do Instagram
     return {
       status: false,
       message: "Erro ao validar conta do Instagram"

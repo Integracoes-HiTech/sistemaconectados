@@ -86,7 +86,7 @@ export const Autocomplete = React.forwardRef<AutocompleteRef, AutocompleteProps>
         }
 
       } else if (type === 'sector' && cityValue) {
-        console.log('🔍 Buscando setores para cidade:', cityValue, 'query:', query);
+        // Buscando setores para cidade
         const { data, error } = await supabase
           .from('sectors')
           .select(`
@@ -99,7 +99,7 @@ export const Autocomplete = React.forwardRef<AutocompleteRef, AutocompleteProps>
           .order('name')
           .limit(10);
 
-        console.log('🔍 Resultado da busca de setores:', { data, error });
+        // Resultado da busca de setores
         if (!error && data) {
           suggestions = data.map((item: { id: string; name: string }) => ({
             id: item.id,
@@ -107,12 +107,12 @@ export const Autocomplete = React.forwardRef<AutocompleteRef, AutocompleteProps>
           }));
         }
       } else if (type === 'sector' && !cityValue) {
-        console.log('⚠️ Tentando buscar setores sem cidade definida');
+        // Tentando buscar setores sem cidade definida
       }
 
       setSuggestions(suggestions);
     } catch (error) {
-      console.error('Erro ao buscar sugestões:', error);
+      // Erro ao buscar sugestões
       setSuggestions([]);
     } finally {
       setIsLoading(false);
@@ -275,9 +275,9 @@ export const Autocomplete = React.forwardRef<AutocompleteRef, AutocompleteProps>
     }
   }, [value, suggestions, onValidationChange, isValidValue]);
 
-  // Debug: monitorar mudanças no estado isOpen
+  // Monitorar mudanças no estado isOpen
   useEffect(() => {
-    console.log('🔄 Estado isOpen mudou para:', isOpen);
+    // Estado isOpen mudou
   }, [isOpen]);
 
   // Função para validar valor contra o banco de dados
