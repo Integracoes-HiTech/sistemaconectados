@@ -434,28 +434,28 @@ export default function PublicRegister() {
 
         // Verificar telefone principal
         if (userPhone === normalizedPhone) {
-          errors.phone = `Este telefone já está cadastrado para ${user.name}`;
+          errors.phone = `Este telefone já está cadastrado`;
         }
 
         // Verificar telefone do parceiro
         if (userPhone === normalizedCouplePhone) {
-          errors.couple_phone = `Este telefone já está cadastrado para ${user.name}`;
+          errors.couple_phone = `Este telefone já está cadastrado`;
         }
         if (userCouplePhone === normalizedCouplePhone) {
-          errors.couple_phone = `Este telefone já está cadastrado para ${user.couple_name}`;
+          errors.couple_phone = `Este telefone já está cadastrado`;
         }
 
         // Verificar Instagram principal
         if (userInstagram === formData.instagram.toLowerCase()) {
-          errors.instagram = `Este Instagram já está cadastrado para ${user.name}`;
+          errors.instagram = `Este Instagram já está cadastrado`;
         }
 
         // Verificar Instagram do parceiro
         if (userInstagram === formData.couple_instagram.toLowerCase()) {
-          errors.couple_instagram = `Este Instagram já está cadastrado para ${user.name}`;
+          errors.couple_instagram = `Este Instagram já está cadastrado`;
         }
         if (userCoupleInstagram === formData.couple_instagram.toLowerCase()) {
-          errors.couple_instagram = `Este Instagram já está cadastrado para ${user.couple_name}`;
+          errors.couple_instagram = `Este Instagram já está cadastrado`;
         }
       }
 
