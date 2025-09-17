@@ -47,6 +47,7 @@ export default function Dashboard() {
   
   const [userLink, setUserLink] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
+  const [phoneSearchTerm, setPhoneSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
   const [filterReferrer, setFilterReferrer] = useState("");
   const [filterCity, setFilterCity] = useState("");
@@ -54,6 +55,7 @@ export default function Dashboard() {
   
   // Filtros para amigos
   const [friendsSearchTerm, setFriendsSearchTerm] = useState("");
+  const [friendsPhoneSearchTerm, setFriendsPhoneSearchTerm] = useState("");
   const [friendsMemberFilter, setFriendsMemberFilter] = useState("");
   
   // Estados de paginação
@@ -284,14 +286,12 @@ export default function Dashboard() {
     const matchesSearch = searchTerm === "" || 
       // Campos da primeira pessoa
       member.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      member.phone.includes(searchTerm) ||
       member.instagram.toLowerCase().includes(searchTerm.toLowerCase()) ||
       member.city.toLowerCase().includes(searchTerm.toLowerCase()) ||
       member.sector.toLowerCase().includes(searchTerm.toLowerCase()) ||
       member.referrer.toLowerCase().includes(searchTerm.toLowerCase()) ||
       // Campos do parceiro
       member.couple_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      member.couple_phone.includes(searchTerm) ||
       member.couple_instagram.toLowerCase().includes(searchTerm.toLowerCase()) ||
       member.couple_city.toLowerCase().includes(searchTerm.toLowerCase()) ||
       member.couple_sector.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -299,6 +299,10 @@ export default function Dashboard() {
       member.contracts_completed.toString().includes(searchTerm) ||
       member.ranking_position?.toString().includes(searchTerm) ||
       member.ranking_status.toLowerCase().includes(searchTerm.toLowerCase());
+
+    const matchesPhone = phoneSearchTerm === "" || 
+      member.phone.includes(phoneSearchTerm) ||
+      member.couple_phone.includes(phoneSearchTerm);
 
     const matchesStatus = filterStatus === "" || member.ranking_status === filterStatus;
     
@@ -308,7 +312,7 @@ export default function Dashboard() {
     
     const matchesSector = filterSector === "" || member.sector.toLowerCase().includes(filterSector.toLowerCase());
 
-    return matchesSearch && matchesStatus && matchesReferrer && matchesCity && matchesSector;
+    return matchesSearch && matchesPhone && matchesStatus && matchesReferrer && matchesCity && matchesSector;
   }).sort((a, b) => {
     // Ordenar por ranking_position (menor número = melhor posição = mais contratos)
     // Se ranking_position for null, colocar no final
@@ -323,14 +327,12 @@ export default function Dashboard() {
     const matchesSearch = friendsSearchTerm === "" || 
       // Campos da primeira pessoa
       friend.name.toLowerCase().includes(friendsSearchTerm.toLowerCase()) ||
-      friend.phone.includes(friendsSearchTerm) ||
       friend.instagram.toLowerCase().includes(friendsSearchTerm.toLowerCase()) ||
       friend.city.toLowerCase().includes(friendsSearchTerm.toLowerCase()) ||
       friend.sector.toLowerCase().includes(friendsSearchTerm.toLowerCase()) ||
       friend.referrer.toLowerCase().includes(friendsSearchTerm.toLowerCase()) ||
       // Campos do parceiro
       friend.couple_name.toLowerCase().includes(friendsSearchTerm.toLowerCase()) ||
-      friend.couple_phone.includes(friendsSearchTerm) ||
       friend.couple_instagram.toLowerCase().includes(friendsSearchTerm.toLowerCase()) ||
       friend.couple_city.toLowerCase().includes(friendsSearchTerm.toLowerCase()) ||
       friend.couple_sector.toLowerCase().includes(friendsSearchTerm.toLowerCase()) ||
@@ -338,9 +340,13 @@ export default function Dashboard() {
       friend.contracts_completed.toString().includes(friendsSearchTerm) ||
       friend.ranking_position?.toString().includes(friendsSearchTerm);
 
+    const matchesPhone = friendsPhoneSearchTerm === "" || 
+      friend.phone.includes(friendsPhoneSearchTerm) ||
+      friend.couple_phone.includes(friendsPhoneSearchTerm);
+
     const matchesMember = friendsMemberFilter === "" || friend.member_name.toLowerCase().includes(friendsMemberFilter.toLowerCase());
 
-    return matchesSearch && matchesMember;
+    return matchesSearch && matchesPhone && matchesMember;
   }).sort((a, b) => {
     // Ordenar por contracts_completed (mais usuários cadastrados = melhor posição)
     if (a.contracts_completed !== b.contracts_completed) {
@@ -1097,15 +1103,29 @@ export default function Dashboard() {
         </CardHeader>
         <CardContent>
           {/* Filtros */}
-          <div className="mb-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="mb-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
                 type="text"
-                placeholder="Pesquisar por qualquer campo (nome, telefone, Instagram, cidade, setor, parceiro, contratos, ranking)..."
+                placeholder="Pesquisar por qualquer campo (nome, Instagram, cidade, setor, parceiro, contratos, ranking)..."
                 value={searchTerm}
                 onChange={(e) => {
                   setSearchTerm(e.target.value);
+                  resetMembersPagination();
+                }}
+                className="pl-10 border-institutional-light focus:border-institutional-gold focus:ring-institutional-gold"
+              />
+            </div>
+
+            <div className="relative">
+              <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                type="text"
+                placeholder="Pesquisar por telefone..."
+                value={phoneSearchTerm}
+                onChange={(e) => {
+                  setPhoneSearchTerm(e.target.value);
                   resetMembersPagination();
                 }}
                 className="pl-10 border-institutional-light focus:border-institutional-gold focus:ring-institutional-gold"
@@ -1498,12 +1518,12 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             {/* Filtros para Amigos */}
-            <div className="mb-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="mb-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
                   type="text"
-                  placeholder="Pesquisar amigos por qualquer campo (nome, telefone, Instagram, cidade, setor, parceiro, contratos, ranking)..."
+                  placeholder="Pesquisar amigos por qualquer campo (nome, Instagram, cidade, setor, parceiro, contratos, ranking)..."
                   value={friendsSearchTerm}
                   onChange={(e) => {
                     setFriendsSearchTerm(e.target.value);
@@ -1512,7 +1532,20 @@ export default function Dashboard() {
                   className="pl-10 border-institutional-light focus:border-institutional-gold focus:ring-institutional-gold"
                 />
               </div>
-              
+
+              <div className="relative">
+                <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  type="text"
+                  placeholder="Pesquisar por telefone..."
+                  value={friendsPhoneSearchTerm}
+                  onChange={(e) => {
+                    setFriendsPhoneSearchTerm(e.target.value);
+                    resetFriendsPagination();
+                  }}
+                  className="pl-10 border-institutional-light focus:border-institutional-gold focus:ring-institutional-gold"
+                />
+              </div>
 
               <div className="relative">
                 <UserIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />

@@ -29,6 +29,7 @@ import { useSystemSettings } from "@/hooks/useSystemSettings";
 
 export default function PaidContracts() {
   const [searchTerm, setSearchTerm] = useState("");
+  const [phoneSearchTerm, setPhoneSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
   const [filterMember, setFilterMember] = useState("");
   const [showAddForm, setShowAddForm] = useState(false);
@@ -170,10 +171,14 @@ export default function PaidContracts() {
       contract.couple_instagram_2.toLowerCase().includes(searchTerm.toLowerCase()) ||
       contract.member_data?.name.toLowerCase().includes(searchTerm.toLowerCase());
 
+    const matchesPhone = phoneSearchTerm === "" || 
+      contract.couple_phone_1.includes(phoneSearchTerm) ||
+      contract.couple_phone_2.includes(phoneSearchTerm);
+
     const matchesStatus = filterStatus === "" || contract.contract_status === filterStatus;
     const matchesMember = filterMember === "" || contract.member_id === filterMember;
 
-    return matchesSearch && matchesStatus && matchesMember;
+    return matchesSearch && matchesPhone && matchesStatus && matchesMember;
   });
 
   // Loading state
@@ -477,7 +482,7 @@ export default function PaidContracts() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
@@ -485,6 +490,17 @@ export default function PaidContracts() {
                   placeholder="Pesquisar por nome ou Instagram..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10 border-institutional-light focus:border-institutional-gold focus:ring-institutional-gold"
+                />
+              </div>
+
+              <div className="relative">
+                <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  type="text"
+                  placeholder="Pesquisar por telefone..."
+                  value={phoneSearchTerm}
+                  onChange={(e) => setPhoneSearchTerm(e.target.value)}
                   className="pl-10 border-institutional-light focus:border-institutional-gold focus:ring-institutional-gold"
                 />
               </div>
