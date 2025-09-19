@@ -160,35 +160,55 @@ export const useAuth = () => {
   }
 
   const isAdmin = () => {
-    return user?.role === 'admin' || user?.role === 'Administrador' || user?.username === 'wegneycosta'
+    return user?.role === 'admin' || user?.role === 'Administrador' || user?.username === 'wegneycosta' || user?.role === 'Felipe Admin' || user?.username === 'felipe'
+  }
+
+  const isFelipeAdmin = () => {
+    return user?.username === 'felipe' || user?.role === 'Felipe Admin'
+  }
+
+  const isFullAdmin = () => {
+    return isAdmin() && !isFelipeAdmin()
   }
 
   const isMembro = () => {
-    return user?.role === 'Membro' || user?.role === 'admin' || user?.role === 'Administrador' || user?.role === 'Convidado' || user?.username === 'wegneycosta'
+    return user?.role === 'Membro' || user?.role === 'admin' || user?.role === 'Administrador' || user?.role === 'Convidado' || user?.username === 'wegneycosta' || isFelipeAdmin()
   }
 
   const isAmigo = () => {
-    return user?.role === 'Amigo' || user?.role === 'Membro' || user?.role === 'admin' || user?.role === 'Administrador' || user?.role === 'Convidado' || user?.username === 'wegneycosta'
+    return user?.role === 'Amigo' || user?.role === 'Membro' || user?.role === 'admin' || user?.role === 'Administrador' || user?.role === 'Convidado' || user?.username === 'wegneycosta' || isFelipeAdmin()
   }
 
   const isConvidado = () => {
-    return user?.role === 'Convidado' || user?.role === 'admin' || user?.role === 'Administrador' || user?.role === 'Convidado' || user?.username === 'wegneycosta'
+    return user?.role === 'Convidado' || user?.role === 'admin' || user?.role === 'Administrador' || user?.role === 'Convidado' || user?.username === 'wegneycosta' || isFelipeAdmin()
   }
 
   const canViewAllUsers = () => {
-    return isAdmin()
+    return isAdmin() || isFelipeAdmin()
   }
 
   const canViewOwnUsers = () => {
-    return isAdmin() || isConvidado() || isMembro() || isAmigo()
+    return isAdmin() || isConvidado() || isMembro() || isAmigo() || isFelipeAdmin()
   }
 
   const canViewStats = () => {
-    return isAdmin() || isMembro() || isConvidado()
+    return isAdmin() || isMembro() || isConvidado() || isFelipeAdmin()
   }
 
   const canGenerateLinks = () => {
-    return isAdmin() || isMembro() || isConvidado() || isAmigo()
+    return isAdmin() || isMembro() || isConvidado() || isAmigo() || isFelipeAdmin()
+  }
+
+  const canDeleteUsers = () => {
+    return isFullAdmin()
+  }
+
+  const canModifyLinkTypes = () => {
+    return isFullAdmin()
+  }
+
+  const canExportReports = () => {
+    return isAdmin() || isMembro() || isConvidado() || isFelipeAdmin()
   }
 
   return {
@@ -198,12 +218,17 @@ export const useAuth = () => {
     logout,
     isAuthenticated,
     isAdmin,
+    isFelipeAdmin,
+    isFullAdmin,
     isMembro,
     isAmigo,
     isConvidado,
     canViewAllUsers,
     canViewOwnUsers,
     canViewStats,
-    canGenerateLinks
+    canGenerateLinks,
+    canDeleteUsers,
+    canModifyLinkTypes,
+    canExportReports
   }
 }

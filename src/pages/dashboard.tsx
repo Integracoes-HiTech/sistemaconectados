@@ -63,14 +63,14 @@ export default function Dashboard() {
   const [itemsPerPage] = useState(50); // 50 itens por página para melhor performance com grandes volumes
   const { toast } = useToast();
   const navigate = useNavigate();
-  const { user, logout, isAdmin, isMembro, isAmigo, isConvidado, canViewAllUsers, canViewOwnUsers, canViewStats, canGenerateLinks } = useAuth();
+  const { user, logout, isAdmin, isFelipeAdmin, isMembro, isAmigo, isConvidado, canViewAllUsers, canViewOwnUsers, canViewStats, canGenerateLinks, canDeleteUsers, canExportReports } = useAuth();
 
-  // Função para remover membro (soft delete - apenas administradores)
+  // Função para remover membro (soft delete - apenas administradores completos)
   const handleRemoveMember = async (memberId: string, memberName: string) => {
-    if (!isAdmin()) {
+    if (!canDeleteUsers()) {
       toast({
         title: "Acesso negado",
-        description: "Apenas administradores podem remover membros.",
+        description: "Apenas administradores completos podem remover membros.",
         variant: "destructive",
       });
       return;
@@ -103,12 +103,12 @@ export default function Dashboard() {
     }
   };
 
-  // Função para remover amigo (soft delete - apenas administradores)
+  // Função para remover amigo (soft delete - apenas administradores completos)
   const handleRemoveFriend = async (friendId: string, friendName: string) => {
-    if (!isAdmin()) {
+    if (!canDeleteUsers()) {
       toast({
         title: "Acesso negado",
-        description: "Apenas administradores podem remover amigos.",
+        description: "Apenas administradores completos podem remover amigos.",
         variant: "destructive",
       });
       return;
@@ -142,9 +142,9 @@ export default function Dashboard() {
   };
 
   // Lógica de filtro por referrer:
-  // Usuário vê todos os usuários (sem filtro)
+  // Admin e Felipe Admin veem todos os usuários (sem filtro)
   // - Outros roles: vê apenas usuários que eles indicaram (filtro por user.full_name)
-  const isAdminUser = isAdmin();
+  const isAdminUser = isAdmin() || isFelipeAdmin();
   const referrerFilter = isAdminUser ? undefined : user?.full_name;
   const userIdFilter = isAdminUser ? undefined : user?.id;
   
@@ -409,9 +409,9 @@ export default function Dashboard() {
               Dashboard - Sistema de Membros Conectados
                 {isAdmin() && (
                 <span className="ml-2 text-sm bg-red-100 text-red-800 px-2 py-1 rounded-full">
-                    {user?.username === 'admin' ? 'ADMIN' : 'VEREADOR'}
+                    {isFelipeAdmin() ? 'FELIPE ADMIN' : user?.username === 'admin' ? 'ADMIN' : 'VEREADOR'}
                 </span>
-              )}
+                )}
             </h1>
             <p className="text-muted-foreground mt-1">
                 {isAdminUser
@@ -1170,7 +1170,7 @@ export default function Dashboard() {
                   <th className="text-left py-3 px-4 font-semibold text-institutional-blue">Contratos</th>
                   <th className="text-left py-3 px-4 font-semibold text-institutional-blue">Status</th>
                   <th className="text-left py-3 px-4 font-semibold text-institutional-blue">Indicado por</th>
-                  {isAdmin() && (
+                  {canDeleteUsers() && (
                     <th className="text-left py-3 px-4 font-semibold text-institutional-blue">Ações</th>
                   )}
                 </tr>
@@ -1258,7 +1258,7 @@ export default function Dashboard() {
                         <span className="text-sm text-institutional-gold font-medium">{member.referrer}</span>
                       </div>
                     </td>
-                    {isAdmin() && (
+                    {canDeleteUsers() && (
                       <td className="py-3 px-4">
                         <Button
                           size="sm"
@@ -1537,7 +1537,7 @@ export default function Dashboard() {
                     <th className="text-left py-3 px-4 font-semibold text-institutional-blue">Cidade</th>
                     <th className="text-left py-3 px-4 font-semibold text-institutional-blue">Setor</th>
                     <th className="text-left py-3 px-4 font-semibold text-institutional-blue">Indicado por</th>
-                    {isAdmin() && (
+                    {canDeleteUsers() && (
                       <th className="text-left py-3 px-4 font-semibold text-institutional-blue">Ações</th>
                     )}
                   </tr>
@@ -1603,7 +1603,7 @@ export default function Dashboard() {
                           </div>
                         </div>
                       </td>
-                      {isAdmin() && (
+                      {canDeleteUsers() && (
                         <td className="py-3 px-4">
                           <Button
                             size="sm"

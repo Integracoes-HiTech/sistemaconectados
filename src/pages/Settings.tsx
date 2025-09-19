@@ -11,7 +11,7 @@ import { supabase } from '@/lib/supabase';
 
 export default function Settings() {
   const navigate = useNavigate();
-  const { user, logout } = useAuth();
+  const { user, logout, canModifyLinkTypes } = useAuth();
   const { 
     settings, 
     phases,
@@ -69,6 +69,15 @@ export default function Settings() {
   }, [loading, error, refetch]);
 
   const handleUpdateLinkType = async (linkType: 'members' | 'friends') => {
+    if (!canModifyLinkTypes()) {
+      toast({
+        title: "Acesso negado",
+        description: "Apenas administradores completos podem alterar tipos de links.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
       setIsUpdating(true);
       console.log('🔍 Settings: Alterando tipo de links para:', linkType);
@@ -264,15 +273,23 @@ export default function Settings() {
             {/* Botões de Controle */}
             <div className="space-y-4">
               <h4 className="font-semibold text-gray-800">Alterar Tipo de Links</h4>
+              {!canModifyLinkTypes() && (
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                  <p className="text-sm text-yellow-800">
+                    <AlertTriangle className="w-4 h-4 inline mr-2" />
+                    Apenas administradores completos podem alterar os tipos de links.
+                  </p>
+                </div>
+              )}
               <div className="grid grid-cols-1 gap-3">
                 <Button
                   onClick={() => handleUpdateLinkType('members')}
-                  disabled={isUpdating}
+                  disabled={isUpdating || !canModifyLinkTypes()}
                   className={`h-16 text-left justify-start ${
                     settings?.member_links_type === 'members' 
                       ? 'bg-green-600 hover:bg-green-700 text-white' 
                       : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
-                  }`}
+                  } ${!canModifyLinkTypes() ? 'opacity-50 cursor-not-allowed' : ''}`}
                 >
                   <div className="flex items-center gap-3">
                     <Users className="w-6 h-6" />
@@ -287,12 +304,12 @@ export default function Settings() {
 
                 <Button
                   onClick={() => handleUpdateLinkType('friends')}
-                  disabled={isUpdating}
+                  disabled={isUpdating || !canModifyLinkTypes()}
                   className={`h-16 text-left justify-start ${
                     settings?.member_links_type === 'friends' 
                       ? 'bg-green-600 hover:bg-green-700 text-white' 
                       : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
-                  }`}
+                  } ${!canModifyLinkTypes() ? 'opacity-50 cursor-not-allowed' : ''}`}
                 >
                   <div className="flex items-center gap-3">
                     <UserCheck className="w-6 h-6" />
