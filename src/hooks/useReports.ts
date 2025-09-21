@@ -176,9 +176,18 @@ export const useReports = (referrer?: string) => {
       date.setDate(date.getDate() - i)
       const dateStr = date.toISOString().split('T')[0]
       
-      const quantidade = members.filter(member => member.registration_date === dateStr).length
+      // Verificar tanto registration_date quanto created_at
+      const quantidade = members.filter(member => {
+        const memberDate = member.registration_date || member.created_at
+        if (!memberDate) return false
+        
+        // Extrair apenas a parte da data (YYYY-MM-DD)
+        const memberDateStr = memberDate.split('T')[0]
+        return memberDateStr === dateStr
+      }).length
+      
       registrationsByDay.push({
-        date: date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }),
+        date: dateStr, // Manter formato ISO para exportação
         quantidade
       })
     }

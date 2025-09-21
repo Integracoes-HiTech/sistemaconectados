@@ -56,6 +56,8 @@ export default function Dashboard() {
   const [friendsSearchTerm, setFriendsSearchTerm] = useState("");
   const [friendsPhoneSearchTerm, setFriendsPhoneSearchTerm] = useState("");
   const [friendsMemberFilter, setFriendsMemberFilter] = useState("");
+  const [friendsFilterCity, setFriendsFilterCity] = useState("");
+  const [friendsFilterSector, setFriendsFilterSector] = useState("");
   
   // Estados de paginação
   const [membersCurrentPage, setMembersCurrentPage] = useState(1);
@@ -185,8 +187,10 @@ export default function Dashboard() {
     exportToPDF, 
     exportMembersToExcel, 
     exportContractsToExcel, 
-    exportStatsToExcel,
-    exportFriendsToExcel
+    exportReportDataToPDF,
+    exportFriendsToExcel,
+    exportMembersToPDF,
+    exportFriendsToPDF
   } = useExportReports();
   
   const { 
@@ -308,8 +312,16 @@ export default function Dashboard() {
       friend.couple_phone.includes(friendsPhoneSearchTerm);
 
     const matchesMember = friendsMemberFilter === "" || friend.member_name.toLowerCase().includes(friendsMemberFilter.toLowerCase());
+    
+    const matchesCity = friendsFilterCity === "" || 
+      friend.city.toLowerCase().includes(friendsFilterCity.toLowerCase()) ||
+      friend.couple_city.toLowerCase().includes(friendsFilterCity.toLowerCase());
+    
+    const matchesSector = friendsFilterSector === "" || 
+      friend.sector.toLowerCase().includes(friendsFilterSector.toLowerCase()) ||
+      friend.couple_sector.toLowerCase().includes(friendsFilterSector.toLowerCase());
 
-    return matchesSearch && matchesPhone && matchesMember;
+    return matchesSearch && matchesPhone && matchesMember && matchesCity && matchesSector;
   }).sort((a, b) => {
     // Ordenar por contracts_completed (mais usuários cadastrados = melhor posição)
     if (a.contracts_completed !== b.contracts_completed) {
@@ -431,7 +443,61 @@ export default function Dashboard() {
               {isAdminUser ? 'Gerar e Copiar Link' : 'Gerar e Copiar Link'}
             </Button>
             
-          
+            {isAdminUser && (
+              <Button
+                onClick={() => {
+                  try {
+                    // Verificar se há dados para exportar
+                    if (!memberStats || !reportData || (memberStats.total_members === 0 && memberStats.current_member_count === 0)) {
+                      toast({
+                        title: "⚠️ Nenhum dado para exportar",
+                        description: "Não é possível gerar um relatório sem dados",
+                        variant: "destructive",
+                      });
+                      return;
+                    }
+
+                    // Calcular Top 5 Membros com mais amigos para incluir no relatório
+                    let topMembersData: Array<{member: string, count: number, position: number}> = [];
+                    if (filteredFriends.length > 0) {
+                      // Contar amigos por membro (excluindo admin)
+                      const friendsByMember = filteredFriends.reduce((acc, friend) => {
+                        if (friend.member_name && friend.member_name.toLowerCase() !== 'admin') {
+                          acc[friend.member_name] = (acc[friend.member_name] || 0) + 1;
+                        }
+                        return acc;
+                      }, {} as Record<string, number>);
+
+                      // Criar Top 5 dos membros com mais amigos
+                      topMembersData = Object.entries(friendsByMember)
+                        .sort(([, a], [, b]) => b - a)
+                        .slice(0, 5)
+                        .map(([member, count], index) => ({ 
+                          position: index + 1, 
+                          member, 
+                          count 
+                        }));
+                    }
+
+                    exportReportDataToPDF(reportData as unknown as Record<string, unknown>, memberStats as unknown as Record<string, unknown>, topMembersData);
+                    toast({
+                      title: "✅ PDF exportado",
+                      description: "Arquivo PDF com dados do relatório foi baixado com sucesso!",
+                    });
+                  } catch (error) {
+                    toast({
+                      title: "❌ Erro na exportação",
+                      description: error instanceof Error ? error.message : "Erro ao exportar PDF",
+                      variant: "destructive",
+                    });
+                  }
+                }}
+                className="bg-red-600 hover:bg-red-700 text-white font-medium"
+              >
+                <BarChart3 className="w-4 h-4 mr-2" />
+                Exportar Dados do Relatório
+              </Button>
+            )}
             
           </div>
           )}
@@ -556,7 +622,7 @@ export default function Dashboard() {
 
         {/* Gráficos de Estatísticas - Primeira Linha (Apenas Administradores) */}
         {isAdmin() && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-6">
           {/* Gráfico de Barras - Usuários por Localização */}
           <Card className="shadow-[var(--shadow-card)]">
             <CardHeader>
@@ -584,13 +650,7 @@ export default function Dashboard() {
             </CardContent>
           </Card>
 
-          </div>
-        )}
-
-        {/* Gráficos de Estatísticas - Segunda Linha (Apenas Administradores) */}
-        {isAdmin() && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          {/* Gráfico de Setores Agrupados por Cidade */}
+          {/* Gráfico de Setores Agrupados por Cidade - MOVIDO AQUI */}
           <Card className="shadow-[var(--shadow-card)]">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-institutional-blue">
@@ -641,7 +701,12 @@ export default function Dashboard() {
               </div>
             </CardContent>
           </Card>
+          </div>
+        )}
 
+        {/* Gráficos de Estatísticas - Segunda Linha (Apenas Administradores) */}
+        {isAdmin() && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-6">
           {/* Gráfico de Barras - Pessoas Cadastradas por Cidade */}
           <Card className="shadow-[var(--shadow-card)]">
             <CardHeader>
@@ -665,12 +730,62 @@ export default function Dashboard() {
               </ResponsiveContainer>
             </CardContent>
           </Card>
+
+          {/* Cidades e Quantidade de Membros */}
+          <Card className="shadow-[var(--shadow-card)]">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-institutional-blue">
+                <Users className="w-5 h-5" />
+                Cidades e Membros
+              </CardTitle>
+              <CardDescription>
+                Quantidade de membros cadastrados por cidade
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3 max-h-80 overflow-y-auto">
+                {Object.entries(reportData.usersByCity)
+                  .sort(([, a], [, b]) => b - a)
+                  .map(([city, count]) => (
+                    <div key={city} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200 hover:bg-institutional-light transition-colors">
+                      <div className="flex items-center gap-3">
+                        <div className="flex items-center justify-center w-8 h-8 rounded-full bg-institutional-blue text-white text-sm font-bold">
+                          {city.charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                          <div className="font-semibold text-gray-800">
+                            {city}
+                          </div>
+                          <div className="text-sm text-gray-500">
+                            {count} {count === 1 ? 'membro cadastrado' : 'membros cadastrados'}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-2xl font-bold text-institutional-blue">
+                          {count}
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          {((count / memberStats.total_members) * 100).toFixed(1)}%
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                {Object.keys(reportData.usersByCity).length === 0 && (
+                  <div className="text-center py-8 text-gray-500">
+                    <Users className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+                    <p>Nenhum dado de membros por cidade encontrado</p>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
           </div>
         )}
 
         {/* Gráficos de Estatísticas - Terceira Linha (Apenas Administradores) */}
         {isAdmin() && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-6">
           {/* Gráfico de Linha - Cadastros Recentes */}
           <Card className="shadow-[var(--shadow-card)]">
             <CardHeader>
@@ -700,10 +815,10 @@ export default function Dashboard() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-institutional-blue">
                 <Users className="w-5 h-5" />
-                Membro com mais amigos
+                Top 5 - Membros com mais amigos
               </CardTitle>
               <CardDescription>
-                Membro que cadastrou mais amigos no sistema
+                Ranking dos membros que mais cadastraram amigos
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -717,12 +832,17 @@ export default function Dashboard() {
                     return acc;
                   }, {} as Record<string, number>);
 
-                  // Encontrar o membro com mais amigos
-                  const topMember = Object.entries(friendsByMember).reduce((max, [member, count]) => 
-                    count > max.count ? { member, count } : max
-                  , { member: '', count: 0 });
+                  // Criar Top 5 dos membros com mais amigos
+                  const topMembers = Object.entries(friendsByMember)
+                    .sort(([, a], [, b]) => b - a)
+                    .slice(0, 5)
+                    .map(([member, count], index) => ({ 
+                      position: index + 1, 
+                      member, 
+                      count 
+                    }));
 
-                  if (topMember.count === 0) {
+                  if (topMembers.length === 0) {
                     return (
                       <div className="flex items-center justify-center h-[300px] text-muted-foreground">
                         <div className="text-center">
@@ -732,31 +852,45 @@ export default function Dashboard() {
                       </div>
                     );
                   }
-                  
+
                   return (
-                    <div className="flex items-center justify-center h-[300px]">
-                      <div className="text-center">
-                        <div className="text-4xl font-bold text-institutional-gold mb-2">
-                          {topMember.count}
-                        </div>
-                        <div className="text-sm text-muted-foreground mb-4">
-                          Amigos cadastrados
-                        </div>
-                        <div className="bg-institutional-light p-4 rounded-lg">
-                          <div className="text-sm font-medium text-institutional-blue mb-1">
-                            Membro: {topMember.member}
+                    <div className="space-y-3 max-h-[300px] overflow-y-auto">
+                      {topMembers.map((item) => (
+                        <div 
+                          key={item.member} 
+                          className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200 hover:bg-institutional-light transition-colors"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className={`
+                              flex items-center justify-center w-8 h-8 rounded-full text-white text-sm font-bold
+                              ${item.position === 1 ? 'bg-yellow-500' : 
+                                item.position === 2 ? 'bg-gray-400' : 
+                                item.position === 3 ? 'bg-amber-600' : 
+                                'bg-institutional-blue'}
+                            `}>
+                              {item.position}
+                            </div>
+                            <div>
+                              <div className="font-semibold text-gray-800">
+                                {item.member}
+                              </div>
+                              <div className="text-sm text-gray-500">
+                                {item.count} amigos cadastrados
+                              </div>
+                            </div>
                           </div>
-                          <div className="text-xs text-muted-foreground">
-                            Total de {Object.keys(friendsByMember).length} membros ativos
+                          <div className="text-right">
+                            <div className="text-2xl font-bold text-institutional-blue">
+                              {item.count}
+                            </div>
+                            {item.position === 1 && (
+                              <div className="text-xs text-yellow-600 font-medium">
+                                🏆 Líder
+                              </div>
+                            )}
                           </div>
                         </div>
-                        <div className="mt-4 w-full bg-gray-200 rounded-full h-2">
-                          <div 
-                            className="bg-institutional-gold h-2 rounded-full transition-all duration-500"
-                            style={{ width: `${Math.min((topMember.count / Math.max(...Object.values(friendsByMember))) * 100, 100)}%` }}
-                          ></div>
-                        </div>
-                      </div>
+                      ))}
                     </div>
                   );
                 })()
@@ -775,7 +909,7 @@ export default function Dashboard() {
 
         {/* Novos Reports - Engagement Rate e Registration Count (Apenas Administradores) */}
         {isAdmin() && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-6">
           </div>
         )}
 
@@ -858,42 +992,8 @@ export default function Dashboard() {
           <div className="mb-6">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-semibold text-institutional-blue">Resumo do Sistema</h2>
-              <div className="flex gap-2">
-                <Button
-                  size="sm"
-                  onClick={() => {
-                    try {
-                      // Verificar se há dados para exportar
-                      if (!memberStats || (memberStats.total_members === 0 && memberStats.current_member_count === 0)) {
-                        toast({
-                          title: "⚠️ Nenhum dado para exportar",
-                          description: "Não é possível gerar um relatório sem dados",
-                          variant: "destructive",
-                        });
-                        return;
-                      }
-
-                      exportStatsToExcel(memberStats as unknown as Record<string, unknown>);
-                      toast({
-                        title: "✅ Excel exportado",
-                        description: "Arquivo Excel das estatísticas foi baixado com sucesso!",
-                      });
-                    } catch (error) {
-                      toast({
-                        title: "❌ Erro na exportação",
-                        description: error instanceof Error ? error.message : "Erro ao exportar Excel",
-                        variant: "destructive",
-                      });
-                    }
-                  }}
-                  className="bg-green-600 hover:bg-green-700 text-white"
-                >
-                  <BarChart3 className="w-4 h-4 mr-2" />
-                  Exportar Estatísticas Excel
-                </Button>
-              </div>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-6">
           <Card className="shadow-[var(--shadow-card)] border-l-4 border-l-institutional-gold">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
@@ -1043,10 +1143,10 @@ export default function Dashboard() {
                         return;
                       }
 
-                      await exportToPDF('members-table', 'ranking_membros.pdf');
+                      await exportMembersToPDF(filteredMembers as unknown as Record<string, unknown>[]);
                       toast({
                         title: "✅ PDF exportado",
-                        description: `Arquivo PDF com ${filteredMembers.length} membros foi baixado com sucesso!`,
+                        description: `Arquivo PDF estruturado com ${filteredMembers.length} membros foi baixado com sucesso!`,
                       });
                     } catch (error) {
                       toast({
@@ -1202,7 +1302,7 @@ export default function Dashboard() {
                           </div>
                           {member.couple_name && (
                             <div className="text-xs text-gray-400 mt-1">
-                              👫 {member.couple_name}
+                              {member.couple_name}
                             </div>
                           )}
                         </div>
@@ -1379,7 +1479,7 @@ export default function Dashboard() {
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-semibold text-institutional-blue">Resumo dos Amigos</h2>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-6">
               <Card className="shadow-[var(--shadow-card)] border-l-4 border-l-institutional-gold">
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
@@ -1459,10 +1559,10 @@ export default function Dashboard() {
                       return;
                     }
 
-                    await exportToPDF('friends-table', 'ranking_amigos.pdf');
+                    await exportFriendsToPDF(filteredFriends);
                     toast({
                       title: "✅ PDF exportado",
-                      description: `Arquivo PDF com ${filteredFriends.length} amigos foi baixado com sucesso!`,
+                      description: `Arquivo PDF estruturado com ${filteredFriends.length} amigos foi baixado com sucesso!`,
                     });
                   } catch (error) {
                     toast({
@@ -1481,12 +1581,12 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             {/* Filtros para Amigos */}
-            <div className="mb-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="mb-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
                   type="text"
-                  placeholder="Pesquisar amigos por qualquer campo (nome, Instagram, cidade, setor, parceiro, contratos, ranking)..."
+                  placeholder="Pesquisar amigos por qualquer campo..."
                   value={friendsSearchTerm}
                   onChange={(e) => {
                     setFriendsSearchTerm(e.target.value);
@@ -1518,6 +1618,34 @@ export default function Dashboard() {
                   value={friendsMemberFilter}
                   onChange={(e) => {
                     setFriendsMemberFilter(e.target.value);
+                    resetFriendsPagination();
+                  }}
+                  className="pl-10 border-institutional-light focus:border-institutional-gold focus:ring-institutional-gold"
+                />
+              </div>
+
+              <div className="relative">
+                <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  type="text"
+                  placeholder="Filtrar por cidade..."
+                  value={friendsFilterCity}
+                  onChange={(e) => {
+                    setFriendsFilterCity(e.target.value);
+                    resetFriendsPagination();
+                  }}
+                  className="pl-10 border-institutional-light focus:border-institutional-gold focus:ring-institutional-gold"
+                />
+              </div>
+
+              <div className="relative">
+                <Building className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  type="text"
+                  placeholder="Filtrar por setor..."
+                  value={friendsFilterSector}
+                  onChange={(e) => {
+                    setFriendsFilterSector(e.target.value);
                     resetFriendsPagination();
                   }}
                   className="pl-10 border-institutional-light focus:border-institutional-gold focus:ring-institutional-gold"
@@ -1564,7 +1692,7 @@ export default function Dashboard() {
                             </div>
                             {friend.couple_name && (
                               <div className="text-xs text-gray-400 mt-1">
-                                👫 {friend.couple_name}
+                                {friend.couple_name}
                               </div>
                             )}
                           </div>
