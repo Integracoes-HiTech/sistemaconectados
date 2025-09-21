@@ -57,8 +57,7 @@ export default function PublicRegister() {
   const [coupleCepData, setCoupleCepData] = useState<CepData | null>(null);
   const hasFetchedData = useRef(false);
   
-  // Estados para nome de exibição personalizado
-  const [showDisplayNameModal, setShowDisplayNameModal] = useState(false);
+  // Estados para nome de exibição (sempre primeiro nome)
   const [displayName, setDisplayName] = useState("");
   
   
@@ -868,7 +867,7 @@ export default function PublicRegister() {
             </p>
               <div className="space-y-3 text-sm">
                 <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
-                  <p className="font-medium text-blue-800 mb-2">👫 Conta Compartilhada</p>
+                  <p className="font-medium text-blue-800 mb-2">Conta Compartilhada</p>
                   <p className="text-blue-700"><strong>Usuário:</strong> {formData.instagram.replace('@', '')}</p>
                   <p className="text-blue-700"><strong>Senha:</strong> {formData.instagram.replace('@', '')}{formData.phone.slice(-4)}</p>
                   <p className="text-blue-600 text-xs mt-2">
@@ -898,125 +897,59 @@ export default function PublicRegister() {
             {/* Botão para Entrar no Sistema - Só aparece para membros */}
             {linkData?.link_type !== 'friends' && (
               <Button
-                onClick={() => {
-                  // Definir nome padrão baseado no formulário
-                  const defaultName = `${formData.name} & ${formData.couple_name}`;
-                  setDisplayName(defaultName);
-                  setShowDisplayNameModal(true);
+                onClick={async () => {
+                  try {
+                    // Usar sempre o primeiro nome da pessoa
+                    const firstName = formData.name.split(' ')[0];
+                    setDisplayName(firstName);
+                    
+                    // Gerar credenciais para login
+                    const username = formData.instagram.replace('@', '');
+                    const password = `${formData.instagram.replace('@', '')}${formData.phone.slice(-4)}`;
+                    
+                    // Fazer login direto
+                    const result = await login(username, password);
+                    if (result.success && result.user) {
+                      // Atualizar display_name com o primeiro nome se for diferente
+                      if (result.user.display_name !== firstName) {
+                        try {
+                          await supabase
+                            .from('auth_users')
+                            .update({ display_name: firstName })
+                            .eq('username', username);
+                        } catch (error) {
+                          console.warn('Erro ao atualizar display_name:', error);
+                        }
+                      }
+
+                      toast({
+                        title: "Login realizado com sucesso!",
+                        description: `Bem-vindo, ${firstName}! Redirecionando...`,
+                      });
+                      
+                      setTimeout(() => {
+                        navigate('/dashboard');
+                      }, 1500);
+                    }
+                  } catch (error) {
+                    toast({
+                      title: "Erro ao fazer login",
+                      description: "Tente novamente em alguns instantes.",
+                      variant: "destructive",
+                    });
+                  }
                 }}
                 className="w-full h-12 bg-institutional-gold hover:bg-institutional-gold/90 text-institutional-blue font-semibold text-lg rounded-lg transition-all duration-200"
               >
                 <div className="flex items-center gap-2">
                   <LogIn className="w-5 h-5" />
-                  Clique aqui para entrar
+                  Confirmar e Entrar no Sistema
                 </div>
               </Button>
             )}
           </div>
         </div>
 
-        {/* Modal de Nome de Exibição Personalizado */}
-        {showDisplayNameModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-lg p-6 w-full max-w-md">
-              <h3 className="text-xl font-bold text-institutional-blue mb-4">
-                Como você quer ser chamado?
-              </h3>
-              <p className="text-gray-600 mb-4">
-                Escolha um nome de exibição personalizado para aparecer no sistema:
-              </p>
-              
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Nome de Exibição
-                  </label>
-                  <Input
-                    value={displayName}
-                    onChange={(e) => setDisplayName(e.target.value)}
-                    placeholder="Ex: João & Maria, Dupla Silva, etc."
-                    className="w-full"
-                  />
-                </div>
-                
-                <div className="flex gap-3">
-                  <Button
-                    onClick={() => setShowDisplayNameModal(false)}
-                    variant="outline"
-                    className="flex-1"
-                  >
-                    Cancelar
-                  </Button>
-                  <Button
-                    onClick={async () => {
-                      if (!displayName.trim()) {
-                        toast({
-                          title: "Nome obrigatório",
-                          description: "Por favor, digite um nome de exibição.",
-                          variant: "destructive",
-                        });
-                        return;
-                      }
-                      
-                      try {
-                        const username = formData.instagram.replace('@', '');
-                        const password = `${formData.instagram.replace('@', '')}${formData.phone.slice(-4)}`;
-                        
-                        const result = await login(username, password);
-                        
-                        if (result.success) {
-                          // Atualizar nome de exibição no perfil do usuário (se diferente do padrão)
-                          const defaultName = `${formData.name} & ${formData.couple_name}`;
-                          if (displayName.trim() !== defaultName) {
-                            try {
-                              const { error } = await supabase
-                                .from('auth_users')
-                                .update({ display_name: displayName.trim() })
-                                .eq('username', username);
-                              
-                              if (error) {
-                                // Erro ao atualizar nome de exibição
-                              }
-                            } catch (updateError) {
-                              // Erro ao atualizar nome de exibição
-                            }
-                          }
-                          
-                          toast({
-                            title: "Login realizado com sucesso!",
-                            description: `Bem-vindo, ${displayName}! Redirecionando...`,
-                          });
-                          
-                          setShowDisplayNameModal(false);
-                          
-                          // Redirecionar para o dashboard após 1 segundo
-                          setTimeout(() => {
-                            navigate("/dashboard");
-                          }, 1000);
-                        } else {
-                          toast({
-                            title: "Erro no login",
-                            description: "Não foi possível fazer login. Verifique suas credenciais.",
-                            variant: "destructive",
-                          });
-                        }
-                      } catch (error) {
-                        toast({
-                          title: "Erro no login",
-                          description: "Não foi possível fazer login. Verifique suas credenciais.",
-                          variant: "destructive",
-                        });
-                      }
-                    }}
-                    className="flex-1 bg-institutional-gold hover:bg-institutional-gold/90 text-institutional-blue"
-                  >
-                    Clique aqui para entrar
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* Rodapé */}
         <div className="text-center text-white text-sm">

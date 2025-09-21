@@ -543,241 +543,143 @@ export const useExportReports = () => {
     exportToExcel(data, 'contratos.xlsx', 'Contratos')
   }, [exportToExcel])
 
-  // Exportar dados do relatório para PDF (formato cards)
+  // Função auxiliar para criar cards organizados
+  const createReportCard = (pdf: jsPDF, title: string, data: Array<{label: string, value: string | number}>, startX: number, startY: number, width: number, height: number) => {
+    // Fundo do card
+    pdf.setFillColor(248, 249, 250)
+    pdf.rect(startX, startY, width, height, 'F')
+    
+    // Borda do card
+    pdf.setDrawColor(226, 232, 240)
+    pdf.setLineWidth(0.5)
+    pdf.rect(startX, startY, width, height, 'S')
+    
+    // Título do card
+    pdf.setFontSize(11)
+    pdf.setFont('helvetica', 'bold')
+    pdf.setTextColor(41, 128, 185)
+    pdf.text(title, startX + 5, startY + 10)
+    
+    // Linha separadora
+    pdf.setDrawColor(226, 232, 240)
+    pdf.line(startX + 5, startY + 15, startX + width - 5, startY + 15)
+    
+    // Dados do card
+    let itemY = startY + 25
+    pdf.setFontSize(9)
+    pdf.setFont('helvetica', 'normal')
+    pdf.setTextColor(0, 0, 0)
+    
+    data.forEach((item, index) => {
+      if (itemY > startY + height - 10) return // Não ultrapassar o card
+      
+      // Label
+      pdf.setFont('helvetica', 'normal')
+      pdf.text(item.label, startX + 5, itemY)
+      
+      // Valor
+      pdf.setFont('helvetica', 'bold')
+      pdf.setTextColor(41, 128, 185)
+      pdf.text(String(item.value), startX + width - 20, itemY)
+      
+      pdf.setTextColor(0, 0, 0)
+      itemY += 8
+    })
+  }
+
+  // Exportar dados do relatório para PDF (formato cards organizados)
   const exportReportDataToPDF = useCallback((reportData: Record<string, unknown>, memberStats: Record<string, unknown>, topMembersData?: Array<{member: string, count: number, position: number}>) => {
     try {
       if (!reportData || !memberStats) {
         throw new Error('Não é possível gerar um relatório sem dados')
       }
 
-      const pdf = new jsPDF('p', 'mm', 'a4') // Portrait para relatórios
+      const pdf = new jsPDF('p', 'mm', 'a4')
       
       // Título principal
-      pdf.setFontSize(16)
+      pdf.setFontSize(18)
       pdf.setFont('helvetica', 'bold')
       pdf.setTextColor(41, 128, 185)
-      pdf.text('Relatório de Dados do Sistema', 20, 20)
+      pdf.text('RELATÓRIO DO SISTEMA', 20, 25)
       
       // Data de geração
       pdf.setFontSize(10)
       pdf.setFont('helvetica', 'normal')
-      pdf.setTextColor(0, 0, 0)
-      pdf.text(`Gerado em: ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR')}`, 20, 30)
+      pdf.setTextColor(100, 100, 100)
+      pdf.text(`Gerado em: ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR')}`, 20, 35)
       
-      let currentY = 45
+      let currentY = 50
 
-      // Seção 1: Estatísticas Gerais
-      pdf.setFontSize(12)
-      pdf.setFont('helvetica', 'bold')
-      pdf.setTextColor(41, 128, 185)
-      pdf.text('ESTATISTICAS GERAIS', 20, currentY)
-      currentY += 10
-
+      // PRIMEIRA PÁGINA - CARDS PRINCIPAIS
+      
+      // Card 1: Estatísticas Gerais (esquerda superior)
       const statsData = [
-        { label: 'Total de Membros', value: memberStats.total_members || 0 },
-        { label: 'Membros Verdes', value: memberStats.green_members || 0 },
-        { label: 'Membros Amarelos', value: memberStats.yellow_members || 0 },
-        { label: 'Membros Vermelhos', value: memberStats.red_members || 0 },
-        { label: 'Top 1500', value: memberStats.top_1500_members || 0 },
-        { label: 'Limite Máximo', value: memberStats.max_member_limit || 1500 }
+        { label: 'Total de Membros', value: (memberStats.total_members as number) || 0 },
+        { label: 'Membros Verdes', value: (memberStats.green_members as number) || 0 },
+        { label: 'Membros Amarelos', value: (memberStats.yellow_members as number) || 0 },
+        { label: 'Membros Vermelhos', value: (memberStats.red_members as number) || 0 },
+        { label: 'Top 1500', value: (memberStats.top_1500_members as number) || 0 }
       ]
-
-      pdf.setFontSize(9)
-      pdf.setFont('helvetica', 'normal')
-      pdf.setTextColor(0, 0, 0)
-
-      statsData.forEach((stat, index) => {
-        if (currentY > 250) {
-          pdf.addPage()
-          currentY = 20
-        }
-        pdf.text(`${stat.label}: ${stat.value}`, 25, currentY)
-        currentY += 6
-      })
-
-      currentY += 10
-
-      // Seção 2: Membros por Cidade
-      pdf.setFontSize(12)
-      pdf.setFont('helvetica', 'bold')
-      pdf.setTextColor(41, 128, 185)
-      pdf.text('MEMBROS POR CIDADE', 20, currentY)
-      currentY += 10
-
+      createReportCard(pdf, 'ESTATÍSTICAS GERAIS', statsData, 20, currentY, 80, 70)
+      
+      // Card 2: Membros por Cidade (direita superior)
       const usersByCity = reportData.usersByCity as Record<string, number> || {}
-      Object.entries(usersByCity)
+      const citiesData = Object.entries(usersByCity)
         .sort(([, a], [, b]) => (b as number) - (a as number))
-        .forEach(([city, count]) => {
-          if (currentY > 250) {
-            pdf.addPage()
-            currentY = 20
-          }
-          pdf.setFontSize(9)
-          pdf.setFont('helvetica', 'normal')
-          pdf.setTextColor(0, 0, 0)
-          pdf.text(`${city}: ${count} membros`, 25, currentY)
-          currentY += 6
-        })
-
-      currentY += 10
-
-      // Seção 3: Setores por Cidade
-      pdf.setFontSize(12)
-      pdf.setFont('helvetica', 'bold')
-      pdf.setTextColor(41, 128, 185)
-      pdf.text('SETORES POR CIDADE', 20, currentY)
-      currentY += 10
-
-      const sectorsGroupedByCity = reportData.sectorsGroupedByCity as Record<string, any> || {}
-      Object.entries(sectorsGroupedByCity)
-        .sort(([, a], [, b]) => (b as any).count - (a as any).count)
-        .forEach(([city, data]) => {
-          if (currentY > 240) {
-            pdf.addPage()
-            currentY = 20
-          }
-          
-          const cityData = data as { count: number, totalSectors: number, sectors: string[] }
-          
-          pdf.setFontSize(10)
-          pdf.setFont('helvetica', 'bold')
-          pdf.setTextColor(41, 128, 185)
-          pdf.text(`${city}`, 25, currentY)
-          currentY += 6
-          
-          pdf.setFontSize(8)
-          pdf.setFont('helvetica', 'normal')
-          pdf.setTextColor(0, 0, 0)
-          pdf.text(`${cityData.totalSectors} setores | ${cityData.count} membros`, 25, currentY)
-          currentY += 5
-          
-          // Listar setores
-          pdf.setFontSize(7)
-          pdf.setTextColor(100, 100, 100)
-          const sectorsText = cityData.sectors.join(', ')
-          const lines = pdf.splitTextToSize(sectorsText, 160)
-          lines.forEach((line: string) => {
-            if (currentY > 280) {
-              pdf.addPage()
-              currentY = 20
-            }
-            pdf.text(line, 30, currentY)
-            currentY += 4
-          })
-          currentY += 6
-        })
-
-      // Seção 4: Distribuição por Status
-      currentY += 5
-      if (currentY > 220) {
-        pdf.addPage()
-        currentY = 20
-      }
+        .slice(0, 5) // Top 5 cidades
+        .map(([city, count]) => ({ label: city, value: count }))
       
-      pdf.setFontSize(12)
-      pdf.setFont('helvetica', 'bold')
-      pdf.setTextColor(41, 128, 185)
-      pdf.text('DISTRIBUICAO POR STATUS', 20, currentY)
-      currentY += 10
+      createReportCard(pdf, 'TOP 5 CIDADES', citiesData, 110, currentY, 80, 70)
+      
+      currentY += 80
 
+      // Card 3: Distribuição por Status (esquerda meio)
       const usersByStatus = reportData.usersByStatus as Array<{ name: string, value: number, color: string }> || []
-      usersByStatus.forEach((status) => {
-        pdf.setFontSize(9)
-        pdf.setFont('helvetica', 'normal')
-        pdf.setTextColor(0, 0, 0)
-        pdf.text(`${status.name}: ${status.value} membros`, 25, currentY)
-        currentY += 6
-      })
-
-      // Seção 5: Cadastros Recentes por Data
-      currentY += 10
-      if (currentY > 220) {
-        pdf.addPage()
-        currentY = 20
-      }
+      const statusData = usersByStatus.map(status => ({ 
+        label: status.name, 
+        value: status.value 
+      }))
       
-      pdf.setFontSize(12)
-      pdf.setFont('helvetica', 'bold')
-      pdf.setTextColor(41, 128, 185)
-      pdf.text('CADASTROS RECENTES POR DATA', 20, currentY)
-      currentY += 10
-
+      createReportCard(pdf, 'DISTRIBUIÇÃO POR STATUS', statusData, 20, currentY, 80, 60)
+      
+      // Card 4: Cadastros Recentes (direita meio)
       const registrationsByDay = reportData.registrationsByDay as Array<{ date: string, quantidade: number }> || []
-      registrationsByDay
+      const recentData = registrationsByDay
         .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-        .slice(0, 10) // Últimos 10 dias
-        .forEach((reg) => {
-          if (currentY > 250) {
-            pdf.addPage()
-            currentY = 20
-          }
-          pdf.setFontSize(9)
-          pdf.setFont('helvetica', 'normal')
-          pdf.setTextColor(0, 0, 0)
-          const dateFormatted = new Date(reg.date).toLocaleDateString('pt-BR')
-          pdf.text(`${dateFormatted}: ${reg.quantidade} cadastros`, 25, currentY)
-          currentY += 6
-        })
+        .slice(0, 5) // Últimos 5 dias
+        .map(reg => ({ 
+          label: new Date(reg.date).toLocaleDateString('pt-BR'), 
+          value: reg.quantidade 
+        }))
+      
+      createReportCard(pdf, 'CADASTROS RECENTES', recentData, 110, currentY, 80, 60)
+      
+      currentY += 70
 
-      // Seção 6: Top 5 Membros com mais Amigos
+      // Card 5: Top 5 Membros com mais Amigos (esquerda inferior)
       if (topMembersData && topMembersData.length > 0) {
-        currentY += 10
-        if (currentY > 220) {
-          pdf.addPage()
-          currentY = 20
-        }
+        const topMembersCardData = topMembersData.slice(0, 5).map(member => ({
+          label: `${member.position}º ${member.member}`,
+          value: `${member.count} amigos`
+        }))
         
-        pdf.setFontSize(12)
-        pdf.setFont('helvetica', 'bold')
-        pdf.setTextColor(41, 128, 185)
-        pdf.text('TOP 5 - MEMBROS COM MAIS AMIGOS', 20, currentY)
-        currentY += 10
-
-        topMembersData.forEach((member) => {
-          if (currentY > 250) {
-            pdf.addPage()
-            currentY = 20
-          }
-          
-          pdf.setFontSize(9)
-          pdf.setFont('helvetica', 'normal')
-          pdf.setTextColor(0, 0, 0)
-          pdf.text(`${member.position}º - ${member.member}: ${member.count} amigos`, 25, currentY)
-          currentY += 6
-        })
-      }
-
-      // Seção 7: Cidades e Membros (com percentuais)
-      currentY += 10
-      if (currentY > 220) {
-        pdf.addPage()
-        currentY = 20
+        createReportCard(pdf, 'TOP 5 - MAIS AMIGOS', topMembersCardData, 20, currentY, 80, 60)
       }
       
-      pdf.setFontSize(12)
-      pdf.setFont('helvetica', 'bold')
-      pdf.setTextColor(41, 128, 185)
-      pdf.text('CIDADES E MEMBROS (DETALHADO)', 20, currentY)
-      currentY += 10
-
-      const totalMembers = memberStats.total_members as number || 1
-      
-      Object.entries(usersByCity)
-        .sort(([, a], [, b]) => (b as number) - (a as number))
-        .forEach(([city, count]) => {
-          if (currentY > 250) {
-            pdf.addPage()
-            currentY = 20
+      // Card 6: Setores por Cidade (direita inferior)
+      const sectorsGroupedByCity = reportData.sectorsGroupedByCity as Record<string, any> || {}
+      const sectorsData = Object.entries(sectorsGroupedByCity)
+        .sort(([, a], [, b]) => (b as any).count - (a as any).count)
+        .slice(0, 4) // Top 4 cidades com mais setores
+        .map(([city, data]) => {
+          const cityData = data as { count: number, totalSectors: number, sectors: string[] }
+          return {
+            label: city,
+            value: `${cityData.totalSectors} setores`
           }
-          
-          const percentage = ((count as number / totalMembers) * 100).toFixed(1)
-          
-          pdf.setFontSize(9)
-          pdf.setFont('helvetica', 'normal')
-          pdf.setTextColor(0, 0, 0)
-          pdf.text(`${city}: ${count} membros (${percentage}%)`, 25, currentY)
-          currentY += 6
         })
+      
+      createReportCard(pdf, 'SETORES POR CIDADE', sectorsData, 110, currentY, 80, 60)
 
       pdf.save('dados_relatorio.pdf')
     } catch (error) {
